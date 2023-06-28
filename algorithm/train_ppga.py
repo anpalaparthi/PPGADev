@@ -121,6 +121,20 @@ def parse_args():
                         help='Log the objective scores in every cell in the archive every log_freq iterations. Useful for pretty visualizations')
     parser.add_argument('--adaptive_stddev', type=lambda x: bool(strtobool(x)), default=True,
                         help='If False, the log stddev parameter in the actor will be reset on each QD iteration. Can potentially help exploration but may lose performance')
+    parser.add_argument('--use_cvt_archive', type=bool, default=False,
+                        help="use CVTArchive instead of GridArchive")
+    parser.add_argument('--cvt_cells', type=int, default=0,
+                        help="number of cells to use in the archive, required is use_cvt_archive is True")
+    parser.add_argument('--cvt_samples', type=int, default=100000,
+                        help="this specifies the number of samples to generate when creating the CVT")
+    parser.add_argument('--cvt_k_means_kwargs', type=str, default="",
+                        help="dict kwargs for kmeans, By default, we pass in n_init=1, init=”random”, algorithm=”lloyd”, and random_state=seed.")
+    parser.add_argument('--cvt_use_kd_tree', type=bool, default=True,
+                        help="use a k-D tree for frinding the closest centroid when inserting into the archive. If False, brute force will be used instead.")
+    parser.add_argument('--cvt_ckdtree_kwargs', type=str, default="",
+                        help="dict kwargs for cKDTree")
+    
+    
 
     args = parser.parse_args()
     cfg = AttrDict(vars(args))
@@ -202,13 +216,35 @@ def create_scheduler(cfg: AttrDict,
                                                    seed=cfg.seed,
                                                    qd_offset=qd_offset)
     else:
-        archive = GridArchive(solution_dim=solution_dim,
-                              dims=archive_dims,
-                              ranges=bounds,
-                              learning_rate=archive_learning_rate,
-                              threshold_min=threshold_min,
-                              seed=cfg.seed,
-                              qd_offset=qd_offset)
+        if cfg.use_cvt_archive:
+            print("using cvt archive")
+            cvt_k_means_kwargs = cfg.cvt_k_means_kwargs
+            cvt_ckdtree_kwargs = cfg.cvt_ckdtree_kwargs
+            if cvt_k_means_kwargs == "":
+                print("no kmeans")
+                cvt_k_means_kwargs = None
+            if cvt_ckdtree_kwargs == "":
+                cvt_ckdtree_kwargs = None
+            archive = CVTArchive(solution_dim=solution_dim,
+                                cells=cfg.cvt_cells,
+                                ranges=bounds,
+                                learning_rate=archive_learning_rate,
+                                threshold_min=threshold_min,
+                                seed=cfg.seed,
+                                # qd_score_offset=qd_offset, 
+                                samples=cfg.cvt_samples, 
+                                custom_centroids=None,
+                                k_means_kwargs=cvt_k_means_kwargs, 
+                                use_kd_tree=cfg.cvt_use_kd_tree, 
+                                ckdtree_kwargs=cvt_ckdtree_kwargs)
+        else:
+            archive = GridArchive(solution_dim=solution_dim,
+                                dims=archive_dims,
+                                ranges=bounds,
+                                learning_rate=archive_learning_rate,
+                                threshold_min=threshold_min,
+                                seed=cfg.seed,
+                                qd_offset=qd_offset)
 
         if use_result_archive:
             result_archive = GridArchive(solution_dim=solution_dim,
@@ -309,7 +345,11 @@ def train_ppga(cfg: AttrDict, vec_env):
     if cfg.take_archive_snapshots:
         if os.path.exists(archive_snapshot_filename):
             os.remove(archive_snapshot_filename)
-        num_cells = np.prod(scheduler.archive.dims)
+        if cfg.use_cvt_archive:
+            num_cells = cfg.cvt_cells
+        else:
+            num_cells = np.prod(scheduler.archive.dims)
+        
         with open(archive_snapshot_filename, 'w') as archive_snapshot_file:
             row = ['Iteration'] + [f'cell_{i}' for i in range(num_cells)]
             writer = csv.writer(archive_snapshot_file)
