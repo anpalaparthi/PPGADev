@@ -40,7 +40,7 @@ from brax.envs import wrappers
 from brax.envs.env import Env, State, Wrapper
 import gym
 
-from envs.brax_custom.custom_wrappers.locomotion_wrappers import FeetContactWrapper
+from envs.brax_custom.custom_wrappers.locomotion_wrappers import FeetContactWrapper, FeetContactAndEnergyWrapper
 from envs.brax_custom.custom_wrappers.reward_wrappers import TotalReward
 from envs.brax_custom.custom_wrappers.clip_wrappers import ActionClipWrapper, RewardClipWrapper, ObservationClipWrapper
 
@@ -86,6 +86,7 @@ def register_environment(env_name: str, env_class: Type[Env]):
 def create(env_name: str,
            episode_length: int = 1000,
            action_repeat: int = 1,
+           is_energy_measures: bool = False,
            clip_actions: Optional[tuple] = None,
            clip_rewards: Optional[tuple] = None,
            clip_obs:     Optional[tuple] = None,
@@ -96,6 +97,11 @@ def create(env_name: str,
     """Creates an Env with a specified brax_custom system."""
     env = _envs[env_name](legacy_spring=True, **kwargs)
     env = FeetContactWrapper(env, env_name)
+    print("feet contact, is_energy_measures = ", is_energy_measures)
+    if is_energy_measures is True:
+        env = _envs[env_name](legacy_spring=True, **kwargs)
+        env = FeetContactAndEnergyWrapper(env, env_name)
+        print("feet contact and energy")
     if clip_obs:
         env = ObservationClipWrapper(env, obs_min=clip_obs[0], obs_max=clip_obs[1])
     if clip_rewards:
@@ -138,12 +144,13 @@ def create_gym_env(env_name: str,
 
 
 def create_gym_env(env_name: str,
+                   is_energy_measures: bool = False,
                    batch_size: Optional[int] = None,
                    seed: int = 0,
                    backend: Optional[str] = None,
                    **kwargs) -> Union[gym.Env, gym.vector.VectorEnv]:
     """Creates a `gym.Env` or `gym.vector.VectorEnv` from a Brax environment."""
-    environment = create(env_name=env_name, batch_size=batch_size, **kwargs)
+    environment = create(env_name=env_name, batch_size=batch_size, is_energy_measures=is_energy_measures, **kwargs)
     if batch_size is None:
         return wrappers.GymWrapper(environment, seed=seed, backend=backend)
     if batch_size <= 0:

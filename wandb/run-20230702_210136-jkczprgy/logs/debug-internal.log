@@ -1,0 +1,17 @@
+2023-07-02 21:01:36,212 INFO    StreamThr :169520 [internal.py:wandb_internal():86] W&B internal server running at pid: 169520, started at: 2023-07-02 21:01:36.211897
+2023-07-02 21:01:36,213 DEBUG   HandlerThread:169520 [handler.py:handle_request():144] handle_request: status
+2023-07-02 21:01:36,217 INFO    WriterThread:169520 [datastore.py:open_for_write():85] open: /home/icaros/Documents/PPGADev/wandb/run-20230702_210136-jkczprgy/run-jkczprgy.wandb
+2023-07-02 21:01:36,217 DEBUG   SenderThread:169520 [sender.py:send():369] send: header
+2023-07-02 21:01:36,268 DEBUG   SenderThread:169520 [sender.py:send():369] send: run
+2023-07-02 21:01:36,314 DEBUG   HandlerThread:169520 [handler.py:handle_request():144] handle_request: shutdown
+2023-07-02 21:01:36,314 INFO    HandlerThread:169520 [handler.py:finish():854] shutting down handler
+2023-07-02 21:01:36,697 INFO    SenderThread:169520 [dir_watcher.py:__init__():211] watching files in: /home/icaros/Documents/PPGADev/wandb/run-20230702_210136-jkczprgy/files
+2023-07-02 21:01:36,697 INFO    SenderThread:169520 [sender.py:_start_run_threads():1100] run started: jkczprgy with start time 1688356896.212967
+2023-07-02 21:01:36,697 INFO    SenderThread:169520 [sender.py:finish():1526] shutting down sender
+2023-07-02 21:01:36,697 INFO    SenderThread:169520 [dir_watcher.py:finish():359] shutting down directory watcher
+2023-07-02 21:01:37,269 INFO    WriterThread:169520 [datastore.py:close():298] close: /home/icaros/Documents/PPGADev/wandb/run-20230702_210136-jkczprgy/run-jkczprgy.wandb
+2023-07-02 21:01:37,698 INFO    SenderThread:169520 [dir_watcher.py:finish():389] scan: /home/icaros/Documents/PPGADev/wandb/run-20230702_210136-jkczprgy/files
+2023-07-02 21:01:37,699 INFO    SenderThread:169520 [dir_watcher.py:finish():403] scan save: /home/icaros/Documents/PPGADev/wandb/run-20230702_210136-jkczprgy/files/config.yaml config.yaml
+2023-07-02 21:01:37,699 INFO    SenderThread:169520 [file_pusher.py:finish():159] shutting down file pusher
+2023-07-02 21:01:37,699 INFO    SenderThread:169520 [file_pusher.py:join():164] waiting for file pusher
+2023-07-02 21:01:38,316 INFO    wandb-upload_0:169520 [upload_job.py:push():133] Uploaded file /home/icaros/Documents/PPGADev/wandb/run-20230702_210136-jkczprgy/files/config.yaml

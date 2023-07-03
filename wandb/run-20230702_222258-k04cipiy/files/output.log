@@ -1,0 +1,90 @@
+using cvt archive
+no kmeans
+[36m[2023-07-02 22:23:01,571][177633] Environment ant, action_dim=8, obs_dim=87
+[36m[2023-07-02 22:23:05,621][177633] Created Scheduler for cma_maega with an archive learning rate of 0.1, and add mode batch, using solution dim 28816 and archive dims [7, 7, 7, 7]. Min threshold is -500.0. Restart rule is no_improvement
+self.next_obs
+torch.Size([3000, 87])
+tensor([[0.5322, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5405, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5269, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        ...,
+        [0.5317, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5375, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5420, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000]],
+       device='cuda:0')
+normalize
+torch.Size([3000, 87])
+step =  0
+step =  1
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 344, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 622, in cache_miss
+    execute = dispatch._xla_call_impl_lazy(fun_, *tracers, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 236, in _xla_call_impl_lazy
+    return xla_callable(fun, device, backend, name, donated_invars, keep_unused,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 303, in memoized_fun
+    ans = call(fun, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 359, in _xla_callable_uncached
+    return lower_xla_callable(fun, device, backend, name, donated_invars, False,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 515, in lower_xla_callable
+    lowering_result = mlir.lower_jaxpr_to_module(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 651, in lower_jaxpr_to_module
+    ctx.module.operation.verify()
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 344, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 622, in cache_miss
+    execute = dispatch._xla_call_impl_lazy(fun_, *tracers, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 236, in _xla_call_impl_lazy
+    return xla_callable(fun, device, backend, name, donated_invars, keep_unused,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 303, in memoized_fun
+    ans = call(fun, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 359, in _xla_callable_uncached
+    return lower_xla_callable(fun, device, backend, name, donated_invars, False,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 515, in lower_xla_callable
+    lowering_result = mlir.lower_jaxpr_to_module(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 651, in lower_jaxpr_to_module
+    ctx.module.operation.verify()
+KeyboardInterrupt

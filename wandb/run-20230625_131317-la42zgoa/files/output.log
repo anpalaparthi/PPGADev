@@ -1,0 +1,25 @@
+
+[36m[2023-06-25 13:13:20,962][131710] Environment ant, action_dim=8, obs_dim=87
+using cvt archive
+no kmeans
+[36m[2023-06-25 13:13:45,582][131710] Created Scheduler for cma_maega with an archive learning rate of 0.1, and add mode batch, using solution dim 28816 and archive dims [10, 10, 10, 10]. Min threshold is -500.0. Restart rule is no_improvement
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 568, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 348, in train_ppga
+    num_cells = np.prod(scheduler.archive.dims)
+AttributeError: 'CVTArchive' object has no attribute 'dims'
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 568, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 348, in train_ppga
+    num_cells = np.prod(scheduler.archive.dims)
+AttributeError: 'CVTArchive' object has no attribute 'dims'

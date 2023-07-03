@@ -1,0 +1,246 @@
+using cvt archive
+no kmeans
+[36m[2023-07-02 23:15:48,957][182307] Environment ant, action_dim=8, obs_dim=87
+[36m[2023-07-02 23:15:52,946][182307] Created Scheduler for cma_maega with an archive learning rate of 0.1, and add mode batch, using solution dim 28816 and archive dims [7, 7, 7, 7]. Min threshold is -500.0. Restart rule is no_improvement
+self.next_obs
+torch.Size([3000, 87])
+tensor([[0.5322, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5405, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5269, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        ...,
+        [0.5317, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5375, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.5420, 1.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000]],
+       device='cuda:0')
+normalize
+torch.Size([3000, 87])
+step =  0
+x.shape
+torch.Size([3000, 87])
+self.weight
+torch.Size([5, 128, 87])
+obs per weight
+600
+x.shape
+torch.Size([3000, 128])
+self.weight
+torch.Size([5, 128, 128])
+obs per weight
+600
+x.shape
+torch.Size([3000, 128])
+self.weight
+torch.Size([5, 8, 128])
+obs per weight
+600
+step =  1
+x.shape
+torch.Size([3000, 87])
+self.weight
+torch.Size([5, 128, 87])
+obs per weight
+600
+x.shape
+torch.Size([3000, 128])
+self.weight
+torch.Size([5, 128, 128])
+obs per weight
+600
+x.shape
+torch.Size([3000, 128])
+self.weight
+torch.Size([5, 8, 128])
+obs per weight
+600
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 344, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 622, in cache_miss
+    execute = dispatch._xla_call_impl_lazy(fun_, *tracers, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 236, in _xla_call_impl_lazy
+    return xla_callable(fun, device, backend, name, donated_invars, keep_unused,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 303, in memoized_fun
+    ans = call(fun, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 359, in _xla_callable_uncached
+    return lower_xla_callable(fun, device, backend, name, donated_invars, False,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 515, in lower_xla_callable
+    lowering_result = mlir.lower_jaxpr_to_module(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 642, in lower_jaxpr_to_module
+    lower_jaxpr_to_fun(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 912, in lower_jaxpr_to_fun
+    out_vals, tokens_out = jaxpr_subcomp(ctx.replace(name_stack=callee_name_stack),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1036, in jaxpr_subcomp
+    ans = rule(rule_ctx, *map(_unwrap_singleton_ir_values, in_nodes),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1099, in f_lowered
+    out, tokens = jaxpr_subcomp(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1036, in jaxpr_subcomp
+    ans = rule(rule_ctx, *map(_unwrap_singleton_ir_values, in_nodes),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 1521, in _while_lowering
+    new_z, tokens_out = mlir.jaxpr_subcomp(body_ctx, body_jaxpr.jaxpr,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1036, in jaxpr_subcomp
+    ans = rule(rule_ctx, *map(_unwrap_singleton_ir_values, in_nodes),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1096, in f_lowered
+    jaxpr, _, consts = pe.trace_to_jaxpr_dynamic(wrapped_fun, ctx.avals_in)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1981, in trace_to_jaxpr_dynamic
+    jaxpr, out_avals, consts = trace_to_subjaxpr_dynamic(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1998, in trace_to_subjaxpr_dynamic
+    ans = fun.call_wrapped(*in_tracers_)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 362, in _scan_impl
+    return _scan_impl_loop(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 323, in _scan_impl_loop
+    _, *outs = while_loop(cond_fun, body_fun, init_val)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 1111, in while_loop
+    init_vals, init_avals, body_jaxpr, in_tree, *rest = _create_jaxpr(init_val)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 1094, in _create_jaxpr
+    body_jaxpr, body_consts, body_tree = _initial_style_jaxpr(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/common.py", line 60, in _initial_style_jaxpr
+    jaxpr, consts, out_tree = _initial_style_open_jaxpr(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/common.py", line 54, in _initial_style_open_jaxpr
+    jaxpr, _, consts = pe.trace_to_jaxpr_dynamic(wrapped_fun, in_avals, debug)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1981, in trace_to_jaxpr_dynamic
+    jaxpr, out_avals, consts = trace_to_subjaxpr_dynamic(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1998, in trace_to_subjaxpr_dynamic
+    ans = fun.call_wrapped(*in_tracers_)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 313, in body_fun
+    out_flat = f_impl(*consts, *carry, *x)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 197, in jaxpr_as_fun
+    return eval_jaxpr(closed_jaxpr.jaxpr, closed_jaxpr.consts, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 395, in eval_jaxpr
+    ans = eqn.primitive.bind(*subfuns, *map(read, eqn.invars), **bind_params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 329, in bind
+    return self.bind_with_trace(find_top_trace(args), args, params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 332, in bind_with_trace
+    out = trace.process_primitive(self, map(trace.full_raise, args), params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1713, in process_primitive
+    return self.default_process_primitive(primitive, tracers, params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1717, in default_process_primitive
+    out_avals, effects = primitive.abstract_eval(*avals, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 365, in abstract_eval_
+    return abstract_eval(*args, **kwargs), no_effects
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 344, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 622, in cache_miss
+    execute = dispatch._xla_call_impl_lazy(fun_, *tracers, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 236, in _xla_call_impl_lazy
+    return xla_callable(fun, device, backend, name, donated_invars, keep_unused,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 303, in memoized_fun
+    ans = call(fun, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 359, in _xla_callable_uncached
+    return lower_xla_callable(fun, device, backend, name, donated_invars, False,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 515, in lower_xla_callable
+    lowering_result = mlir.lower_jaxpr_to_module(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 642, in lower_jaxpr_to_module
+    lower_jaxpr_to_fun(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 912, in lower_jaxpr_to_fun
+    out_vals, tokens_out = jaxpr_subcomp(ctx.replace(name_stack=callee_name_stack),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1036, in jaxpr_subcomp
+    ans = rule(rule_ctx, *map(_unwrap_singleton_ir_values, in_nodes),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1099, in f_lowered
+    out, tokens = jaxpr_subcomp(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1036, in jaxpr_subcomp
+    ans = rule(rule_ctx, *map(_unwrap_singleton_ir_values, in_nodes),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 1521, in _while_lowering
+    new_z, tokens_out = mlir.jaxpr_subcomp(body_ctx, body_jaxpr.jaxpr,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1036, in jaxpr_subcomp
+    ans = rule(rule_ctx, *map(_unwrap_singleton_ir_values, in_nodes),
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/mlir.py", line 1096, in f_lowered
+    jaxpr, _, consts = pe.trace_to_jaxpr_dynamic(wrapped_fun, ctx.avals_in)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1981, in trace_to_jaxpr_dynamic
+    jaxpr, out_avals, consts = trace_to_subjaxpr_dynamic(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1998, in trace_to_subjaxpr_dynamic
+    ans = fun.call_wrapped(*in_tracers_)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 362, in _scan_impl
+    return _scan_impl_loop(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 323, in _scan_impl_loop
+    _, *outs = while_loop(cond_fun, body_fun, init_val)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 1111, in while_loop
+    init_vals, init_avals, body_jaxpr, in_tree, *rest = _create_jaxpr(init_val)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 1094, in _create_jaxpr
+    body_jaxpr, body_consts, body_tree = _initial_style_jaxpr(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/common.py", line 60, in _initial_style_jaxpr
+    jaxpr, consts, out_tree = _initial_style_open_jaxpr(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/common.py", line 54, in _initial_style_open_jaxpr
+    jaxpr, _, consts = pe.trace_to_jaxpr_dynamic(wrapped_fun, in_avals, debug)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1981, in trace_to_jaxpr_dynamic
+    jaxpr, out_avals, consts = trace_to_subjaxpr_dynamic(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1998, in trace_to_subjaxpr_dynamic
+    ans = fun.call_wrapped(*in_tracers_)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 313, in body_fun
+    out_flat = f_impl(*consts, *carry, *x)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 197, in jaxpr_as_fun
+    return eval_jaxpr(closed_jaxpr.jaxpr, closed_jaxpr.consts, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 395, in eval_jaxpr
+    ans = eqn.primitive.bind(*subfuns, *map(read, eqn.invars), **bind_params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 329, in bind
+    return self.bind_with_trace(find_top_trace(args), args, params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 332, in bind_with_trace
+    out = trace.process_primitive(self, map(trace.full_raise, args), params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1713, in process_primitive
+    return self.default_process_primitive(primitive, tracers, params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 1717, in default_process_primitive
+    out_avals, effects = primitive.abstract_eval(*avals, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/core.py", line 365, in abstract_eval_
+    return abstract_eval(*args, **kwargs), no_effects
+KeyboardInterrupt

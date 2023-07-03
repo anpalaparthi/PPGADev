@@ -8,6 +8,7 @@ from brax.physics.base import QP, Info
 from brax.physics.system import System
 
 from envs.brax_custom.custom_wrappers.base_wrappers import QDEnv
+from envs.brax_custom.custom_wrappers.env_steps import ant_step
 
 FEET_NAMES = {
     "ant": ["$ Body 4", "$ Body 7", "$ Body 10", "$ Body 13"],
@@ -17,6 +18,9 @@ FEET_NAMES = {
     "humanoid": ["left_shin", "right_shin"],
 }
 
+ENERGY_REWARD_NAMES = {
+    "ant": ant_step
+}
 
 class QDSystem(System):
     """Inheritance of brax_custom physic system.
@@ -79,7 +83,6 @@ class FeetContactWrapper(QDEnv):
     """
 
     def __init__(self, env: Env, env_name: str):
-
         if env_name not in FEET_NAMES.keys():
             raise NotImplementedError(f"This wrapper does not support {env_name} yet.")
 
@@ -143,6 +146,103 @@ class FeetContactWrapper(QDEnv):
         if name == "__setstate__":
             raise AttributeError(name)
         return getattr(self.env, name)
+
+
+class FeetContactAndEnergyWrapper(FeetContactWrapper):
+    """Wraps gym environments to add the feet contact data.
+
+    Utilisation is simple: create an environment with Brax, pass
+    it to the wrapper with the name of the environment, and it will
+    work like before and will simply add the feet_contact booleans in
+    the information dictionary of the Brax.state.
+
+    The only supported envs at the moment are among the classic
+    locomotion envs : Walker2D, Hopper, Ant, Bullet.
+
+    New locomotions envs can easily be added by adding the config name
+    of the feet of the corresponding environment in the FEET_NAME dictionary.
+
+    Example :
+
+        from brax_custom import envs
+        from brax_custom import jumpy as jp
+
+        # choose in ["ant", "walker2d", "hopper", "halfcheetah"]
+        ENV_NAME = "ant"
+        env = envs.create(env_name=ENV_NAME)
+        qd_env = FeetContactWrapper(env, ENV_NAME)
+
+        state = qd_env.reset(rng=jp.random_prngkey(seed=0))
+        for i in range(10):
+            action = jp.zeros((qd_env.action_size,))
+            state = qd_env.step(state, action)
+
+            # retrieve feet contact
+            feet_contact = state.info["state_descriptor"]
+
+            # do whatever you want with feet_contact
+            print(f"Feet contact : {feet_contact}")
+
+
+    """
+
+    def __init__(self, env: Env, env_name: str):
+        if env_name not in ENERGY_REWARD_NAMES.keys():
+            raise NotImplementedError(f"This wrapper does not support {env_name} yet.")
+
+        self.env_step_fn = ENERGY_REWARD_NAMES[env_name]
+
+        super().__init__(env=env, env_name=env_name)
+        # print("self.env")
+        print(self.env)
+
+    # @property
+    # def state_descriptor_length(self) -> int:
+    #     return self.behavior_descriptor_length
+
+    # @property
+    # def state_descriptor_name(self) -> str:
+    #     return "feet_contact"
+
+    # @property
+    # def state_descriptor_limits(self) -> Tuple[List, List]:
+    #     return self.behavior_descriptor_limits
+
+    @property
+    def behavior_descriptor_length(self) -> int:
+        return len(self._feet_contact_idx) + 2
+
+    # @property
+    # def behavior_descriptor_limits(self) -> Tuple[List, List]:
+    #     bd_length = self.behavior_descriptor_length
+    #     return (jnp.zeros((bd_length,)), jnp.ones((bd_length,)))
+
+    # @property
+    # def name(self) -> str:
+    #     return self._env_name
+
+    def reset(self, rng: jp.ndarray) -> State:
+        state = self.env.reset(rng)
+
+        feet_contact_measures = self._get_feet_contact(
+           self.env.sys.info(state.qp)
+        )
+        ctrl_cost_measure = jp.array([0]).astype(jp.float32)
+
+        state.info["measures"] = jp.concatenate((feet_contact_measures, ctrl_cost_measure))
+        return state
+
+    def step(self, state: State, action: jp.ndarray) -> State:
+        state = self.env_step_fn(self.env, state, action)
+
+        feet_contact_measures = self._get_feet_contact(self.env.sys.aux_info)
+        ctrl_cost_measure = state.info["measures"]
+
+        # print("feet_contact_shape: ", feet_contact_measures.shape)
+        # print("ctrl_cost_measure.shape: ", ctrl_cost_measure.shape)
+        state.info["measures"] = jp.concatenate((feet_contact_measures, ctrl_cost_measure))
+        return state
+
 
 
 # name of the center of gravity

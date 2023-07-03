@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 
 ENV_NAME="ant"
-GRID_SIZE=10  # number of cells per archive dimension
+GRID_SIZE=7  # number of cells per archive dimension
 SEED=1111
 
 
-RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
+RUN_NAME="energy_1000_paper_ppga_"$ENV_NAME"_seed_"$SEED
 echo $RUN_NAME
 python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                      --rollout_length=128 \
                                      --use_wandb=True \
                                      --seed=$SEED \
                                      --wandb_group=paper \
-                                     --num_dims=4 \
+                                     --num_dims=5 \
                                      --num_minibatches=8 \
                                      --update_epochs=4 \
                                      --normalize_obs=True \
@@ -35,7 +35,8 @@ python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                      --grid_size=$GRID_SIZE \
                                      --take_archive_snapshots=True \
                                      --use_cvt_archive=True \
-                                     --cvt_cells=10000 \
+                                     --cvt_cells=1000 \
                                      --cvt_samples=100000 \
                                      --cvt_use_kd_tree=True \
+                                     --is_energy_measures=True \
                                      --expdir=./experiments/paper_ppga_"$ENV_NAME"

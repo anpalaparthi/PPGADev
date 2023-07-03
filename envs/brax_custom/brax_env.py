@@ -30,7 +30,7 @@ _to_custom_env = {
 
 
 def make_vec_env_brax(cfg):
-    entry_point = functools.partial(brax_custom.create_gym_env, env_name=cfg.env_name)
+    entry_point = functools.partial(brax_custom.create_gym_env, env_name=cfg.env_name, is_energy_measures=cfg.is_energy_measures)
     brax_env_name = _to_custom_env[cfg.env_name]['custom_env_name']
     if brax_env_name not in gym.envs.registry.env_specs:
         gym.register(brax_env_name, entry_point=entry_point)

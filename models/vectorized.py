@@ -19,6 +19,12 @@ class VectorizedLinearBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         obs_per_weight = x.shape[0] // self.weight.shape[0]
+        # print("x.shape")
+        # print(x.shape)
+        # print("self.weight")
+        # print(self.weight.shape)
+        # print("obs per weight")
+        # print(obs_per_weight)
         x = torch.reshape(x, (-1, obs_per_weight, x.shape[1]))
         w_t = torch.transpose(self.weight, 1, 2).to(self.device)
         with autocast(device_type=self.device.type):
@@ -63,6 +69,8 @@ class VectorizedPolicy(StochasticPolicy, ABC):
         assert hasattr(models[0], layer_name), f'{layer_name=} not in the model'
         all_models_layers = [getattr(models[i], layer_name) for i in range(self.num_models)]
         num_layers = len(getattr(models[0], layer_name))
+        # print("num layers")
+        # print(num_layers)
         blocks = []
         for i in range(0, num_layers):
             if not isinstance(all_models_layers[0][i], nn.Linear):
@@ -70,7 +78,11 @@ class VectorizedPolicy(StochasticPolicy, ABC):
             weights_slice = [all_models_layers[j][i].weight.to(self.device) for j in range(self.num_models)]
             bias_slice = [all_models_layers[j][i].bias.to(self.device) for j in range(self.num_models)]
 
+            # print("weights slice shape before")
+            # print(len(weights_slice))
             weights_slice = torch.stack(weights_slice)
+            # print("weights slice shape after")
+            # print(weights_slice.shape)
             bias_slice = torch.stack(bias_slice)
             nonlinear = all_models_layers[0][i + 1] if i + 1 < num_layers else None
             block = VectorizedLinearBlock(weights_slice, bias_slice)

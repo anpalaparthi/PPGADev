@@ -1,0 +1,28 @@
+using cvt archive
+no kmeans
+[36m[2023-06-25 01:11:24,784][128363] Environment ant, action_dim=8, obs_dim=87
+[36m[2023-06-25 01:11:49,266][128363] Created Scheduler for cma_maega with an archive learning rate of 0.1, and add mode batch, using solution dim 28816 and archive dims [10, 10, 10, 10]. Min threshold is -500.0. Restart rule is no_improvement
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 568, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 391, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 390, in train
+    b_obs = self.obs.transpose(0, 1).reshape((num_agents, -1,) + self.obs_shape)
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 128.00 MiB (GPU 0; 7.79 GiB total capacity; 296.25 MiB already allocated; 81.38 MiB free; 320.00 MiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 568, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 391, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 390, in train
+    b_obs = self.obs.transpose(0, 1).reshape((num_agents, -1,) + self.obs_shape)
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 128.00 MiB (GPU 0; 7.79 GiB total capacity; 296.25 MiB already allocated; 81.38 MiB free; 320.00 MiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

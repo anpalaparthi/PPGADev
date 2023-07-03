@@ -290,8 +290,13 @@ class PPO:
               negative_measure_gradients=False):
         global_step = 0
         self.next_obs = vec_env.reset()
+        # print("self.next_obs")
+        # print(self.next_obs.shape)
+        # print(self.next_obs)
         if self.cfg.normalize_obs:
+            # print("normalize")
             self.next_obs = self.vec_inference.vec_normalize_obs(self.next_obs)
+        # print(self.next_obs.shape)
 
         if calculate_dqd_gradients:
             solution_params = self._agents[0].serialize()
@@ -312,6 +317,7 @@ class PPO:
         for update in range(1, num_updates + 1):
             with torch.no_grad():
                 for step in range(rollout_length):
+                    # print("step = ", step)
                     global_step += self.num_envs
 
                     self.obs[step] = self.next_obs

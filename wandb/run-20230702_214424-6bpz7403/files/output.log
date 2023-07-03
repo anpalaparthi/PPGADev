@@ -1,0 +1,72 @@
+
+[36m[2023-07-02 21:44:27,523][174989] Environment ant, action_dim=8, obs_dim=87
+using cvt archive
+no kmeans
+[36m[2023-07-02 21:44:31,877][174989] Created Scheduler for cma_maega with an archive learning rate of 0.1, and add mode batch, using solution dim 28816 and archive dims [7, 7, 7, 7]. Min threshold is -500.0. Restart rule is no_improvement
+[36m[2023-07-02 21:44:51,575][174989] train() took 15.77 seconds to complete
+[36m[2023-07-02 21:44:51,575][174989] FPS: 243529.01
+[36m[2023-07-02 21:44:56,154][174989] Finished Evaluation Step
+[37m[1m[2023-07-02 21:44:56,154][174989] Reward + Measures: [[-588.68095486    0.25546131    0.25514868    0.25722858    0.25611034]]
+[37m[1m[2023-07-02 21:44:56,155][174989] Max Reward on eval: -588.6809548568759
+[37m[1m[2023-07-02 21:44:56,155][174989] Min Reward on eval: -588.6809548568759
+[37m[1m[2023-07-02 21:44:56,155][174989] Mean Reward across all agents: -588.6809548568759
+[37m[1m[2023-07-02 21:44:56,156][174989] Average Trajectory Length: 552.1656666666667
+[36m[2023-07-02 21:45:01,914][174989] Finished Evaluation Step
+[37m[1m[2023-07-02 21:45:01,914][174989] Reward + Measures: [[-610.5764086     0.2800341     0.23347612    0.25663295    0.23990341]
+[37m[1m [-300.95308583    0.30248114    0.2430158     0.25359693    0.2511158 ]
+[37m[1m [-455.37255853    0.25321096    0.29385486    0.25466394    0.2543309 ]
+[37m[1m ...
+[37m[1m [-525.88067154    0.29923853    0.22857022    0.26329419    0.22860284]
+[37m[1m [-699.59553163    0.29290539    0.2778644     0.23786786    0.28724939]
+[37m[1m [-731.21619539    0.24338761    0.22639771    0.21236554    0.21836343]]
+[37m[1m[2023-07-02 21:45:01,915][174989] Max Reward on eval: -145.84565241616218
+[37m[1m[2023-07-02 21:45:01,915][174989] Min Reward on eval: -1414.0205967813556
+[37m[1m[2023-07-02 21:45:01,915][174989] Mean Reward across all agents: -597.80837564367
+[37m[1m[2023-07-02 21:45:01,916][174989] Average Trajectory Length: 501.29566666666665
+[36m[2023-07-02 21:45:02,273][174989] mean_value=-97.80837564367008, max_value=354.1543475838378
+[37m[1m[2023-07-02 21:45:02,306][174989] New mean coefficients: [[ 0.97053075 -1.4274411  -2.1115792  -2.8252914  -2.1003873 ]]
+[37m[1m[2023-07-02 21:45:02,307][174989] Moving the mean solution point...
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 462, in train_ppga
+    ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 338, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 60, in step
+    obs = self.observation(obs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 39, in observation
+    return torch.jax_to_torch(observation, device=self.device)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/functools.py", line 888, in wrapper
+    return dispatch(args[0].__class__)(*args, **kw)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/io/torch.py", line 83, in _devicearray_to_tensor
+    dpack = jax_dlpack.to_dlpack(value.astype("float32"))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dlpack.py", line 51, in to_dlpack
+    return xla_client._xla.buffer_to_dlpack_managed_tensor(
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 462, in train_ppga
+    ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 338, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 60, in step
+    obs = self.observation(obs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 39, in observation
+    return torch.jax_to_torch(observation, device=self.device)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/functools.py", line 888, in wrapper
+    return dispatch(args[0].__class__)(*args, **kw)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/io/torch.py", line 83, in _devicearray_to_tensor
+    dpack = jax_dlpack.to_dlpack(value.astype("float32"))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dlpack.py", line 51, in to_dlpack
+    return xla_client._xla.buffer_to_dlpack_managed_tensor(
+KeyboardInterrupt

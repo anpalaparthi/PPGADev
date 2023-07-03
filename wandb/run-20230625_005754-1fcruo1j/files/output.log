@@ -1,0 +1,26 @@
+[36m[2023-06-25 00:57:58,063][127061] Environment ant, action_dim=8, obs_dim=87
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 561, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 334, in train_ppga
+    scheduler = create_scheduler(cfg, use_result_archive=use_result_archive)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 221, in create_scheduler
+    archive = CVTArchive(solution_dim=solution_dim,
+TypeError: __init__() got an unexpected keyword argument 'qd_offset'
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 561, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 334, in train_ppga
+    scheduler = create_scheduler(cfg, use_result_archive=use_result_archive)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 221, in create_scheduler
+    archive = CVTArchive(solution_dim=solution_dim,
+TypeError: __init__() got an unexpected keyword argument 'qd_offset'
+using cvt archive

@@ -1,0 +1,195 @@
+
+[36m[2023-07-02 21:18:09,846][172321] Environment ant, action_dim=8, obs_dim=87
+using cvt archive
+no kmeans
+[36m[2023-07-02 21:18:14,126][172321] Created Scheduler for cma_maega with an archive learning rate of 0.1, and add mode batch, using solution dim 28816 and archive dims [7, 7, 7, 7]. Min threshold is -500.0. Restart rule is no_improvement
+feet_contact_shape:  (4,)
+ctrl_cost_measure.shape:  (2,)
+Traceback (most recent call last):
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 577, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 338, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 622, in cache_miss
+    execute = dispatch._xla_call_impl_lazy(fun_, *tracers, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 236, in _xla_call_impl_lazy
+    return xla_callable(fun, device, backend, name, donated_invars, keep_unused,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 303, in memoized_fun
+    ans = call(fun, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 359, in _xla_callable_uncached
+    return lower_xla_callable(fun, device, backend, name, donated_invars, False,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 445, in lower_xla_callable
+    jaxpr, out_type, consts = pe.trace_to_jaxpr_final2(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 2077, in trace_to_jaxpr_final2
+    jaxpr, out_type, consts = trace_to_subjaxpr_dynamic2(fun, main, debug_info)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 2027, in trace_to_subjaxpr_dynamic2
+    ans = fun.call_wrapped(*in_tracers_)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 312, in step
+    state = self._env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 138, in step
+    state = self.env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 70, in step
+    return jp.vmap(self.env.step)(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 1682, in vmap_f
+    out_flat = batching.batch(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 110, in step
+    state, rewards = jp.scan(f, state, (), self.action_repeat)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/jumpy.py", line 107, in scan
+    return jax.lax.scan(f, init, xs, length, reverse, unroll)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 266, in scan
+    _check_tree_and_avals("scan carry output and input",
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/common.py", line 103, in _check_tree_and_avals
+    raise TypeError(
+jax._src.traceback_util.UnfilteredStackTrace: TypeError: scan carry output and input must have same type structure, got PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'ctrl_cost': *, 'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])) and PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])).
+The stack trace below excludes JAX-internal frames.
+The preceding is the original exception that occurred, unmodified.
+--------------------
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 577, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 338, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 312, in step
+    state = self._env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 138, in step
+    state = self.env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 70, in step
+    return jp.vmap(self.env.step)(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 110, in step
+    state, rewards = jp.scan(f, state, (), self.action_repeat)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/jumpy.py", line 107, in scan
+    return jax.lax.scan(f, init, xs, length, reverse, unroll)
+TypeError: scan carry output and input must have same type structure, got PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'ctrl_cost': *, 'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])) and PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])).
+Traceback (most recent call last):
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 577, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 338, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 622, in cache_miss
+    execute = dispatch._xla_call_impl_lazy(fun_, *tracers, **params)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 236, in _xla_call_impl_lazy
+    return xla_callable(fun, device, backend, name, donated_invars, keep_unused,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 303, in memoized_fun
+    ans = call(fun, *args)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 359, in _xla_callable_uncached
+    return lower_xla_callable(fun, device, backend, name, donated_invars, False,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/dispatch.py", line 445, in lower_xla_callable
+    jaxpr, out_type, consts = pe.trace_to_jaxpr_final2(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/profiler.py", line 314, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 2077, in trace_to_jaxpr_final2
+    jaxpr, out_type, consts = trace_to_subjaxpr_dynamic2(fun, main, debug_info)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/interpreters/partial_eval.py", line 2027, in trace_to_subjaxpr_dynamic2
+    ans = fun.call_wrapped(*in_tracers_)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 312, in step
+    state = self._env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 138, in step
+    state = self.env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 70, in step
+    return jp.vmap(self.env.step)(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/api.py", line 1682, in vmap_f
+    out_flat = batching.batch(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/linear_util.py", line 167, in call_wrapped
+    ans = self.f(*args, **dict(self.params, **kwargs))
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 110, in step
+    state, rewards = jp.scan(f, state, (), self.action_repeat)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/jumpy.py", line 107, in scan
+    return jax.lax.scan(f, init, xs, length, reverse, unroll)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/traceback_util.py", line 162, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/loops.py", line 266, in scan
+    _check_tree_and_avals("scan carry output and input",
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/jax/_src/lax/control_flow/common.py", line 103, in _check_tree_and_avals
+    raise TypeError(
+jax._src.traceback_util.UnfilteredStackTrace: TypeError: scan carry output and input must have same type structure, got PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'ctrl_cost': *, 'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])) and PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])).
+The stack trace below excludes JAX-internal frames.
+The preceding is the original exception that occurred, unmodified.
+--------------------
+The above exception was the direct cause of the following exception:
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 577, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 398, in train_ppga
+    objs, measures, jacobian, metadata = ppo.train(vec_env=vec_env,
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 338, in train
+    self.next_obs, reward, dones, infos = vec_env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/to_torch.py", line 59, in step
+    obs, reward, done, info = super().step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/core.py", line 280, in step
+    return self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/gym/wrappers/order_enforcing.py", line 13, in step
+    observation, reward, done, info = self.env.step(action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 323, in step
+    self._state, obs, reward, done, info = self._step(self._state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 312, in step
+    state = self._env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 138, in step
+    state = self.env.step(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 70, in step
+    return jp.vmap(self.env.step)(state, action)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/envs/wrappers.py", line 110, in step
+    state, rewards = jp.scan(f, state, (), self.action_repeat)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/brax/jumpy.py", line 107, in scan
+    return jax.lax.scan(f, init, xs, length, reverse, unroll)
+TypeError: scan carry output and input must have same type structure, got PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'ctrl_cost': *, 'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])) and PyTreeDef(CustomNode(State[()], [CustomNode(QP[()], [*, *, *, *]), *, *, *, {'distance_from_origin': *, 'forward_reward': *, 'reward_contact': *, 'reward_ctrl': *, 'reward_forward': *, 'reward_survive': *, 'x_position': *, 'x_velocity': *, 'y_position': *, 'y_velocity': *}, {'first_obs': *, 'first_qp': CustomNode(QP[()], [*, *, *, *]), 'measures': *, 'steps': *, 'truncation': *}])).

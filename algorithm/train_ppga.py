@@ -121,7 +121,7 @@ def parse_args():
                         help='Log the objective scores in every cell in the archive every log_freq iterations. Useful for pretty visualizations')
     parser.add_argument('--adaptive_stddev', type=lambda x: bool(strtobool(x)), default=True,
                         help='If False, the log stddev parameter in the actor will be reset on each QD iteration. Can potentially help exploration but may lose performance')
-    parser.add_argument('--use_cvt_archive', type=bool, default=False,
+    parser.add_argument('--use_cvt_archive', type=lambda x: bool(strtobool(x)), default=False,
                         help="use CVTArchive instead of GridArchive")
     parser.add_argument('--cvt_cells', type=int, default=0,
                         help="number of cells to use in the archive, required is use_cvt_archive is True")
@@ -129,10 +129,13 @@ def parse_args():
                         help="this specifies the number of samples to generate when creating the CVT")
     parser.add_argument('--cvt_k_means_kwargs', type=str, default="",
                         help="dict kwargs for kmeans, By default, we pass in n_init=1, init=”random”, algorithm=”lloyd”, and random_state=seed.")
-    parser.add_argument('--cvt_use_kd_tree', type=bool, default=True,
+    parser.add_argument('--cvt_use_kd_tree', type=lambda x: bool(strtobool(x)), default=True,
                         help="use a k-D tree for frinding the closest centroid when inserting into the archive. If False, brute force will be used instead.")
     parser.add_argument('--cvt_ckdtree_kwargs', type=str, default="",
                         help="dict kwargs for cKDTree")
+    parser.add_argument('--is_energy_measures', type=lambda x: bool(strtobool(x)), default=False,
+                        help="use the wrapper with only forward reward and control cost part of measures")
+    
     
     
 
@@ -546,6 +549,8 @@ if __name__ == '__main__':
     cfg = parse_args()
     cfg.num_emitters = 1
 
+    print("is energy measures = ", cfg.is_energy_measures)
+
     vec_env = make_vec_env_brax(cfg)
     cfg.batch_size = int(cfg.env_batch_size * cfg.rollout_length)
     cfg.num_envs = int(cfg.env_batch_size)
@@ -553,6 +558,11 @@ if __name__ == '__main__':
     cfg.minibatch_size = int(cfg.batch_size // cfg.num_minibatches)
     cfg.obs_shape = vec_env.single_observation_space.shape
     cfg.action_shape = vec_env.single_action_space.shape
+
+    print("obs_shape")
+    print(cfg.obs_shape)
+    print("action_shape")
+    print(cfg.action_shape)
 
     if cfg.use_wandb:
         config_wandb(batch_size=cfg.batch_size, total_iters=cfg.total_iterations, run_name=cfg.wandb_run_name,

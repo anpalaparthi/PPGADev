@@ -1,0 +1,43 @@
+
+[36m[2023-07-02 23:55:21,653][185227] Environment ant, action_dim=8, obs_dim=87
+using cvt archive
+no kmeans
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 344, in train_ppga
+    scheduler = create_scheduler(cfg, use_result_archive=use_result_archive)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 259, in create_scheduler
+    ppo = PPO(cfg)
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 60, in __init__
+    self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
+  File "/home/icaros/Documents/PPGADev/models/vectorized.py", line 146, in __init__
+    self.blocks = self._vectorize_layers('actor_mean', models)
+  File "/home/icaros/Documents/PPGADev/models/vectorized.py", line 82, in _vectorize_layers
+    print(weights_slice.shape)
+AttributeError: 'list' object has no attribute 'shape'
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 582, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 344, in train_ppga
+    scheduler = create_scheduler(cfg, use_result_archive=use_result_archive)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 259, in create_scheduler
+    ppo = PPO(cfg)
+  File "/home/icaros/Documents/PPGADev/RL/ppo.py", line 60, in __init__
+    self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
+  File "/home/icaros/Documents/PPGADev/models/vectorized.py", line 146, in __init__
+    self.blocks = self._vectorize_layers('actor_mean', models)
+  File "/home/icaros/Documents/PPGADev/models/vectorized.py", line 82, in _vectorize_layers
+    print(weights_slice.shape)
+AttributeError: 'list' object has no attribute 'shape'
+num layers
+5
+weights slice shape before
