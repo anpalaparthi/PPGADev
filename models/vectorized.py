@@ -19,12 +19,12 @@ class VectorizedLinearBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         obs_per_weight = x.shape[0] // self.weight.shape[0]
-        # print("x.shape")
-        # print(x.shape)
-        # print("self.weight")
-        # print(self.weight.shape)
-        # print("obs per weight")
-        # print(obs_per_weight)
+        #print("x.shape")
+        #print(x.shape)
+        #print("self.weight")
+        #print(self.weight.shape)
+        #print("obs per weight")
+        #print(obs_per_weight)
         x = torch.reshape(x, (-1, obs_per_weight, x.shape[1]))
         w_t = torch.transpose(self.weight, 1, 2).to(self.device)
         with autocast(device_type=self.device.type):
@@ -160,6 +160,8 @@ class VectorizedActor(VectorizedPolicy):
         action_logstd = torch.repeat_interleave(self.actor_logstd, repeats, dim=0)
         action_logstd = action_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
+        #print("action mean: ")
+        #print(action_mean)
         probs = torch.distributions.Normal(action_mean, action_std)
         if action is None:
             action = probs.sample()

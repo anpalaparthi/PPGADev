@@ -186,7 +186,12 @@ def create_scheduler(cfg: AttrDict,
     threshold_min = -np.inf
 
     bounds = [(0.0, 1.0)] * cfg.num_dims
+    if cfg.is_energy_measures:
+        bounds[cfg.num_dims - 1] = cfg.energy_bounds
     archive_dims = [cfg.grid_size] * cfg.num_dims
+
+    print("bounds: ")
+    print(bounds)
 
     if cfg.dqd_algorithm == 'cma_maega':
         threshold_min = cfg.threshold_min
@@ -435,6 +440,10 @@ def train_ppga(cfg: AttrDict, vec_env):
 
         best = max(best, max(objs))
 
+        print("objs")
+        print(objs)
+        print("measures")
+        print(measures)
         # return the evals to the scheduler. Will be used to update the search distribution in xnes
         restarted = scheduler.tell(objs, measures, metadata)
         if restarted:
@@ -544,6 +553,10 @@ def train_ppga(cfg: AttrDict, vec_env):
                     f'QD/mean_coeff_measure{i}': mean_grad_coeffs[0][i]
                 })
 
+ENERGY_BOUNDS = {
+        'ant': (0.0, 8.0),
+        'walker2d': (0.0, 6.0)
+}
 
 if __name__ == '__main__':
     cfg = parse_args()
@@ -563,6 +576,13 @@ if __name__ == '__main__':
     print(cfg.obs_shape)
     print("action_shape")
     print(cfg.action_shape)
+
+    if cfg.is_energy_measures:
+        if cfg.env_name not in ENERGY_BOUNDS:
+             raise NotImplementedError(f"The {cfg.env_name} environment does not support energy measures yet.")
+        print("vec env: ")
+        print(vec_env)
+        cfg.energy_bounds = ENERGY_BOUNDS[cfg.env_name]
 
     if cfg.use_wandb:
         config_wandb(batch_size=cfg.batch_size, total_iters=cfg.total_iterations, run_name=cfg.wandb_run_name,

@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
 ENV_NAME="ant"
-GRID_SIZE=7  # number of cells per archive dimension
+GRID_SIZE=10  # number of cells per archive dimension
 SEED=1111
 
 
-RUN_NAME="energy_1000_paper_ppga_"$ENV_NAME"_seed_"$SEED
+RUN_NAME="energy_cvt_1000_no_terminate"$ENV_NAME"_seed_"$SEED
 echo $RUN_NAME
-python -m algorithm.train_ppga --env_name=$ENV_NAME \
+python -u -m algorithm.train_ppga --env_name=$ENV_NAME \
                                      --rollout_length=128 \
                                      --use_wandb=True \
                                      --seed=$SEED \
-                                     --wandb_group=paper \
+                                     --wandb_group=qdrl \
                                      --num_dims=5 \
                                      --num_minibatches=8 \
                                      --update_epochs=4 \

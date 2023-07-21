@@ -5,13 +5,13 @@ GRID_SIZE=50  # number of cells per archive dimension
 SEED=1111
 
 
-RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
+RUN_NAME="paper_ppga_energy_1000_"$ENV_NAME"_seed_"$SEED
 echo $RUN_NAME
-python -m algorithm.train_ppga --env_name=$ENV_NAME \
+python -u -m algorithm.train_ppga --env_name=$ENV_NAME \
                                 --rollout_length=128 \
                                 --use_wandb=True \
                                 --wandb_group=paper \
-                                --num_dims=2 \
+                                --num_dims=3 \
                                 --seed=$SEED \
                                 --anneal_lr=False \
                                 --num_minibatches=8 \
@@ -34,6 +34,12 @@ python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                 --calc_gradient_iters=10 \
                                 --move_mean_iters=10 \
                                 --archive_lr=0.5 \
-                                --threshold_min=200 \
+                                --threshold_min=-300 \
                                 --grid_size=$GRID_SIZE \
+                                --take_archive_snapshots=True \
+                                --use_cvt_archive=True \
+                                --cvt_cells=1000 \
+                                --cvt_samples=100000 \
+                                --cvt_use_kd_tree=True \
+                                --is_energy_measures=True \
                                 --expdir=./experiments/paper_ppga_"$ENV_NAME"

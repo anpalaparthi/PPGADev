@@ -8,7 +8,7 @@ from brax.physics.base import QP, Info
 from brax.physics.system import System
 
 from envs.brax_custom.custom_wrappers.base_wrappers import QDEnv
-from envs.brax_custom.custom_wrappers.env_steps import ant_step
+from envs.brax_custom.custom_wrappers.env_steps import ant_step, walker2d_step
 
 FEET_NAMES = {
     "ant": ["$ Body 4", "$ Body 7", "$ Body 10", "$ Body 13"],
@@ -19,7 +19,8 @@ FEET_NAMES = {
 }
 
 ENERGY_REWARD_NAMES = {
-    "ant": ant_step
+    "ant": ant_step,
+    "walker2d": walker2d_step
 }
 
 class QDSystem(System):
@@ -191,6 +192,8 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
             raise NotImplementedError(f"This wrapper does not support {env_name} yet.")
 
         self.env_step_fn = ENERGY_REWARD_NAMES[env_name]
+        print("env step fn")
+        print(self.env_step_fn)
 
         super().__init__(env=env, env_name=env_name)
         # print("self.env")
@@ -210,7 +213,12 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
 
     @property
     def behavior_descriptor_length(self) -> int:
-        return len(self._feet_contact_idx) + 2
+        #return len(self._feet_contact_idx) + 2
+        return len(self._feet_contact_idx) + 1
+
+    @property
+    def ctrl_cost_weight(self) -> float:
+        return self._ctrl_cost_weight
 
     # @property
     # def behavior_descriptor_limits(self) -> Tuple[List, List]:
@@ -227,6 +235,7 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
         feet_contact_measures = self._get_feet_contact(
            self.env.sys.info(state.qp)
         )
+        #ctrl_cost_measure = jp.array([0, 0]).astype(jp.float32)
         ctrl_cost_measure = jp.array([0]).astype(jp.float32)
 
         state.info["measures"] = jp.concatenate((feet_contact_measures, ctrl_cost_measure))

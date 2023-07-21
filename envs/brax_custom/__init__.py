@@ -57,6 +57,7 @@ reward_offset = {
 _envs = {
     'acrobot': acrobot.Acrobot,
     'ant': functools.partial(ant.Ant, use_contact_forces=True),
+    'ant_energy': functools.partial(ant.Ant, use_contact_forces=True, terminate_when_unhealthy=False),
     'fast': fast.Fast,
     'fetch': fetch.Fetch,
     'grasp': grasp.Grasp,
@@ -72,6 +73,7 @@ _envs = {
     'swimmer': swimmer.Swimmer,
     'ur5e': ur5e.Ur5e,
     'walker2d': walker2d.Walker2d,
+    'walker2d_energy': functools.partial(walker2d.Walker2d, terminate_when_unhealthy=False)
 }
 
 
@@ -99,7 +101,7 @@ def create(env_name: str,
     env = FeetContactWrapper(env, env_name)
     print("feet contact, is_energy_measures = ", is_energy_measures)
     if is_energy_measures is True:
-        env = _envs[env_name](legacy_spring=True, **kwargs)
+        env = _envs[env_name + "_energy"](legacy_spring=True, **kwargs)
         env = FeetContactAndEnergyWrapper(env, env_name)
         print("feet contact and energy")
     if clip_obs:

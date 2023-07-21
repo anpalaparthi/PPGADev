@@ -21,11 +21,12 @@ def ant_step(env: Env, state: State, action: jp.ndarray) -> State:
     #   healthy_reward = env._healthy_reward
     # else:
     #   healthy_reward = env._healthy_reward * is_healthy
-    ctrl_cost = env._ctrl_cost_weight * jp.sum(jp.square(action))
+    ctrl_cost = jp.sum(jp.square(action))
     contact_cost = (env._contact_cost_weight *
                     jp.sum(jp.square(jp.clip(info.contact.vel, -1, 1))))
     obs = env._get_obs(qp, info)
     # reward = forward_reward + healthy_reward - ctrl_cost - contact_cost
+    #reward = forward_reward - contact_cost
     reward = forward_reward
     # done = 1.0 - is_healthy if env._terminate_when_unhealthy else 0.0
 
@@ -35,8 +36,8 @@ def ant_step(env: Env, state: State, action: jp.ndarray) -> State:
     state.metrics.update(
         reward_forward=forward_reward,
         reward_survive=zero,
-        reward_ctrl=zero,
-        reward_contact=zero,
+        reward_ctrl=ctrl_cost,
+        reward_contact=-contact_cost,
         x_position=qp.pos[0, 0],
         y_position=qp.pos[0, 1],
         distance_from_origin=jp.linalg.norm(qp.pos[0]),
@@ -53,7 +54,47 @@ def ant_step(env: Env, state: State, action: jp.ndarray) -> State:
                          done=zero
                          )
     
+    #newstate.info["measures"] = jp.array([ctrl_cost, contact_cost]).astype(jp.float32)
     newstate.info["measures"] = jp.array([ctrl_cost]).astype(jp.float32)
     # print("newstate.metrics")
     # print(newstate.metrics)
+    return newstate
+
+def walker2d_step(env: Env, state: State, action: jp.ndarray) -> State:
+    """Run one timestep of the environment's dynamics."""
+    qp, _ = env.sys.step(state.qp, action)
+
+    x_velocity = (qp.pos[0, 0] - state.qp.pos[0, 0]) / env.sys.config.dt
+    # forward_reward = env._forward_reward_weight * x_velocity
+    forward_reward = x_velocity
+
+    # min_z, max_z = env._healthy_z_range
+    # min_angle, max_angle = env._healthy_angle_range
+    # ang_y = math.quat_to_euler(qp.rot[0])[1]
+    # is_healthy = jp.where(qp.pos[0, 2] < min_z, x=0.0, y=1.0)
+    # is_healthy = jp.where(qp.pos[0, 2] > max_z, x=0.0, y=is_healthy)
+    # is_healthy = jp.where(ang_y > max_angle, x=0.0, y=is_healthy)
+    # is_healthy = jp.where(ang_y < min_angle, x=0.0, y=is_healthy)
+    # if env._terminate_when_unhealthy:
+    #     healthy_reward = env._healthy_reward
+    # else:
+    #     healthy_reward = env._healthy_reward * is_healthy
+    # ctrl_cost = env._ctrl_cost_weight * jp.sum(jp.square(action))
+    
+    ctrl_cost = jp.sum(jp.square(action))
+    
+    obs = env._get_obs(qp)
+    # reward = forward_reward + healthy_reward - ctrl_cost
+    reward = forward_reward
+    # done = 1.0 - is_healthy if env._terminate_when_unhealthy else 0.0
+    zero, _ = jp.zeros(2)
+    state.metrics.update(
+        reward_forward=forward_reward,
+        reward_ctrl=-ctrl_cost,
+        reward_healthy=zero,
+        x_position=qp.pos[0, 0],
+        x_velocity=x_velocity)
+
+    newstate = state.replace(qp=qp, obs=obs, reward=reward, done=zero)
+    newstate.info["measures"] = jp.array([ctrl_cost]).astype(jp.float32)
     return newstate
