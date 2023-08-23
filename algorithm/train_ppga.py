@@ -440,10 +440,10 @@ def train_ppga(cfg: AttrDict, vec_env):
 
         best = max(best, max(objs))
 
-        print("objs")
-        print(objs)
-        print("measures")
-        print(measures)
+        # print("objs")
+        # print(objs)
+        # print("measures")
+        # print(measures)
         # return the evals to the scheduler. Will be used to update the search distribution in xnes
         restarted = scheduler.tell(objs, measures, metadata)
         if restarted:
@@ -555,7 +555,8 @@ def train_ppga(cfg: AttrDict, vec_env):
 
 ENERGY_BOUNDS = {
         'ant': (0.0, 8.0),
-        'walker2d': (0.0, 6.0)
+        'walker2d': (0.0, 6.0),
+        'humanoid': (0.0, 16.0)
 }
 
 if __name__ == '__main__':

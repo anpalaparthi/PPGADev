@@ -323,6 +323,11 @@ class Scheduler:
             metadata_batch,
         ) = self._tell_internal(objective_batch, measures_batch, metadata_batch)
 
+        print("sum and status batch")
+        print(status_batch.astype(bool).sum())
+        print(status_batch)
+
+
         # Keep track of pos because emitters may have different batch sizes.
         pos = 0
         restarted = False

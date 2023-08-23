@@ -64,6 +64,7 @@ _envs = {
     'halfcheetah': half_cheetah.Halfcheetah,
     'hopper': hopper.Hopper,
     'humanoid': humanoid.Humanoid,
+    'humanoid_energy': functools.partial(humanoid.Humanoid, terminate_when_unhealthy=False),
     'humanoidstandup': humanoid_standup.HumanoidStandup,
     'inverted_pendulum': inverted_pendulum.InvertedPendulum,
     'inverted_double_pendulum': inverted_double_pendulum.InvertedDoublePendulum,

@@ -8,7 +8,7 @@ from brax.physics.base import QP, Info
 from brax.physics.system import System
 
 from envs.brax_custom.custom_wrappers.base_wrappers import QDEnv
-from envs.brax_custom.custom_wrappers.env_steps import ant_step, walker2d_step
+from envs.brax_custom.custom_wrappers.env_steps import ant_step, walker2d_step, humanoid_step
 
 FEET_NAMES = {
     "ant": ["$ Body 4", "$ Body 7", "$ Body 10", "$ Body 13"],
@@ -20,7 +20,8 @@ FEET_NAMES = {
 
 ENERGY_REWARD_NAMES = {
     "ant": ant_step,
-    "walker2d": walker2d_step
+    "walker2d": walker2d_step,
+    "humanoid": humanoid_step
 }
 
 class QDSystem(System):
