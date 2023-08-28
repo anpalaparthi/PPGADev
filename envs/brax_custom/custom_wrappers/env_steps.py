@@ -83,6 +83,9 @@ def walker2d_step(env: Env, state: State, action: jp.ndarray) -> State:
     # ctrl_cost = env._ctrl_cost_weight * jp.sum(jp.square(action))
     
     ctrl_cost = jp.sum(jp.square(action))
+    z_height = jp.array(qp.pos[0,2]) 
+
+    measures = jp.array([ctrl_cost, z_height]).astype(jp.float32)
     
     obs = env._get_obs(qp)
     # reward = forward_reward + healthy_reward - ctrl_cost
@@ -97,7 +100,7 @@ def walker2d_step(env: Env, state: State, action: jp.ndarray) -> State:
         x_velocity=x_velocity)
 
     newstate = state.replace(qp=qp, obs=obs, reward=reward, done=zero)
-    newstate.info["measures"] = jp.array([ctrl_cost]).astype(jp.float32)
+    newstate.info["measures"] = measures
     return newstate
 
 def humanoid_step(env: Env, state: State, action: jp.ndarray) -> State:

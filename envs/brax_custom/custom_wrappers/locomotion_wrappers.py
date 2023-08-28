@@ -192,6 +192,7 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
         if env_name not in ENERGY_REWARD_NAMES.keys():
             raise NotImplementedError(f"This wrapper does not support {env_name} yet.")
 
+        self._env_name = env_name
         self.env_step_fn = ENERGY_REWARD_NAMES[env_name]
         print("env step fn")
         print(self.env_step_fn)
@@ -238,6 +239,9 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
         )
         #ctrl_cost_measure = jp.array([0, 0]).astype(jp.float32)
         ctrl_cost_measure = jp.array([0]).astype(jp.float32)
+        if self._env_name is 'walker2d':
+            z_height_measure = jp.array([0]).astype(jp.float32)
+            ctrl_cost_measure = jp.concatenate(ctrl_cost_measure, z_height_measure)
 
         state.info["measures"] = jp.concatenate((feet_contact_measures, ctrl_cost_measure))
         return state
@@ -246,7 +250,7 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
         state = self.env_step_fn(self.env, state, action)
 
         feet_contact_measures = self._get_feet_contact(self.env.sys.aux_info)
-        ctrl_cost_measure = state.info["measures"]
+        ctrl_cost_measure = state.info["measures"] # will also include z_height measure if env_name is walker2d
 
         # print("feet_contact_shape: ", feet_contact_measures.shape)
         # print("ctrl_cost_measure.shape: ", ctrl_cost_measure.shape)

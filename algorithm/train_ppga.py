@@ -187,7 +187,11 @@ def create_scheduler(cfg: AttrDict,
 
     bounds = [(0.0, 1.0)] * cfg.num_dims
     if cfg.is_energy_measures:
-        bounds[cfg.num_dims - 1] = cfg.energy_bounds
+        if cfg.env_name is 'walker2d':
+            bounds[cfg.num_dims - 1] = cfg.energy_bounds[1]
+            bounds[cfg.num_dims - 2] = cfg.energy_bounds[0]
+        else:
+            bounds[cfg.num_dims - 1] = cfg.energy_bounds
     archive_dims = [cfg.grid_size] * cfg.num_dims
 
     print("bounds: ")
@@ -555,7 +559,7 @@ def train_ppga(cfg: AttrDict, vec_env):
 
 ENERGY_BOUNDS = {
         'ant': (0.0, 8.0),
-        'walker2d': (0.0, 6.0),
+        'walker2d': [(0.0, 6.0),(0.0, 3.0)], #energy bounds, z height bounds
         'humanoid': (0.0, 16.0)
 }
 
@@ -565,6 +569,7 @@ if __name__ == '__main__':
 
     print("is energy measures = ", cfg.is_energy_measures)
 
+    #TODO: make vec env 
     vec_env = make_vec_env_brax(cfg)
     cfg.batch_size = int(cfg.env_batch_size * cfg.rollout_length)
     cfg.num_envs = int(cfg.env_batch_size)

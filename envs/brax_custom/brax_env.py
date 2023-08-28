@@ -28,6 +28,7 @@ _to_custom_env = {
                     }},
 }
 
+#TODO: make vec env for game environment
 
 def make_vec_env_brax(cfg):
     entry_point = functools.partial(brax_custom.create_gym_env, env_name=cfg.env_name, is_energy_measures=cfg.is_energy_measures)

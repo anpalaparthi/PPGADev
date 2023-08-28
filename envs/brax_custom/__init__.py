@@ -160,3 +160,5 @@ def create_gym_env(env_name: str,
         raise ValueError(
             '`batch_size` should either be None or a positive integer.')
     return wrappers.VectorGymWrapper(environment, seed=seed, backend=backend)
+
+#TODO: create gym env for atari
