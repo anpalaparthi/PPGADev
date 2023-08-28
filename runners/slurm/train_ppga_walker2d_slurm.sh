@@ -3,7 +3,8 @@
 #SBATCH -N1
 #SBATCH -n1
 #SBATCH -c4
-#SBATCH --output=tmp/ppga_walker2d_%j.log
+#SBATCH --output=/home/anisha/Documents/PPGADev/anisha_biped_out.txt
+#SBATCH --error=/home/anisha/Documents/PPGADev/anisha_biped_error.txt
 
 ENV_NAME="walker2d"
 GRID_SIZE=50  # number of cells per archive dimension
@@ -11,8 +12,13 @@ SEED=1111
 
 
 RUN_NAME="paper_ppga_energy_height_"$ENV_NAME"_seed_"$SEED
+
+eval "$(conda shell.bash hook)"
+conda activate ppga
 echo $RUN_NAME
-srun python -u -m algorithm.train_ppga --env_name=$ENV_NAME \
+export WANDB_API_KEY=891d210ba7d22f573c05eab8fee22c8ff1e662bc
+
+srun echo -ne "anishapv\n" | python -u -m algorithm.train_ppga --env_name=$ENV_NAME \
                                 --rollout_length=128 \
                                 --use_wandb=True \
                                 --wandb_group=paper \
