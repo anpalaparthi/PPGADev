@@ -3,16 +3,19 @@
 #SBATCH -N1
 #SBATCH -n1
 #SBATCH -c8
-#SBATCH --output=tmp/ppga_ant_%j.log
-
+#SBATCH --output=/home/anisha/Documents/PPGADev/anisha_out.txt
+#SBATCH --error=/home/anisha/Documents/PPGADev/anisha_error.txt
 ENV_NAME="ant"
 GRID_SIZE=10  # number of cells per archive dimension
 SEED=1111
 
 
 RUN_NAME="paper_ppga_"$ENV_NAME"_seed_"$SEED
+eval "$(conda shell.bash hook)"
+conda activate ppga
 echo $RUN_NAME
-srun python -m algorithm.train_ppga --env_name=$ENV_NAME \
+export WANDB_API_KEY=891d210ba7d22f573c05eab8fee22c8ff1e662bc
+srun echo -ne "anishapv\n" | python -m algorithm.train_ppga --env_name=$ENV_NAME \
                                      --rollout_length=128 \
                                      --use_wandb=True \
                                      --seed=$SEED \

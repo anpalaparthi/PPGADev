@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+#SBATCH --partition=slurm-long
 #SBATCH --gres=gpu:1
 #SBATCH -N1
 #SBATCH -n1
@@ -7,9 +8,8 @@
 #SBATCH --error=/home/anisha/Documents/PPGADev/anisha_biped_error.txt
 
 ENV_NAME="walker2d"
-GRID_SIZE=50  # number of cells per archive dimension
+GRID_SIZE=20  # number of cells per archive dimension
 SEED=1111
-
 
 RUN_NAME="paper_ppga_energy_height_"$ENV_NAME"_seed_"$SEED
 

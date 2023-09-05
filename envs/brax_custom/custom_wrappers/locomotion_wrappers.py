@@ -24,6 +24,11 @@ ENERGY_REWARD_NAMES = {
     "humanoid": humanoid_step
 }
 
+HEIGHT_NAMES = {
+    "walker2d",
+    #"humanoid": humanoid_step
+}
+
 class QDSystem(System):
     """Inheritance of brax_custom physic system.
 
@@ -189,10 +194,12 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
     """
 
     def __init__(self, env: Env, env_name: str):
+        self._use_height = False
         if env_name not in ENERGY_REWARD_NAMES.keys():
             raise NotImplementedError(f"This wrapper does not support {env_name} yet.")
+        if env_name in HEIGHT_NAMES:
+            self._use_height = True
 
-        self._env_name = env_name
         self.env_step_fn = ENERGY_REWARD_NAMES[env_name]
         print("env step fn")
         print(self.env_step_fn)
@@ -239,9 +246,9 @@ class FeetContactAndEnergyWrapper(FeetContactWrapper):
         )
         #ctrl_cost_measure = jp.array([0, 0]).astype(jp.float32)
         ctrl_cost_measure = jp.array([0]).astype(jp.float32)
-        if self._env_name is 'walker2d':
-            z_height_measure = jp.array([0]).astype(jp.float32)
-            ctrl_cost_measure = jp.concatenate(ctrl_cost_measure, z_height_measure)
+        if self._use_height:
+            print("inside walker2d, add z height to ctrl cost measure")
+            ctrl_cost_measure = jp.array([0, 0]).astype(jp.float32) # for energy and z-height
 
         state.info["measures"] = jp.concatenate((feet_contact_measures, ctrl_cost_measure))
         return state

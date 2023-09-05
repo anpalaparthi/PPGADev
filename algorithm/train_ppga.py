@@ -187,9 +187,9 @@ def create_scheduler(cfg: AttrDict,
 
     bounds = [(0.0, 1.0)] * cfg.num_dims
     if cfg.is_energy_measures:
-        if cfg.env_name is 'walker2d':
-            bounds[cfg.num_dims - 1] = cfg.energy_bounds[1]
-            bounds[cfg.num_dims - 2] = cfg.energy_bounds[0]
+        if cfg.env_name in HEIGHT_BOUNDS:
+            bounds[cfg.num_dims - 2] = cfg.energy_bounds
+            bounds[cfg.num_dims - 1] = cfg.height_bounds
         else:
             bounds[cfg.num_dims - 1] = cfg.energy_bounds
     archive_dims = [cfg.grid_size] * cfg.num_dims
@@ -211,14 +211,53 @@ def create_scheduler(cfg: AttrDict,
         log.info('Loading an existing archive dataframe...')
         with open(cfg.load_archive_from_cp, 'rb') as f:
             archive_df = pickle.load(f)
-        archive = archive_df_to_archive(archive_df,
-                                        solution_dim=solution_dim,
-                                        dims=archive_dims,
-                                        ranges=bounds,
-                                        learning_rate=archive_learning_rate,
-                                        threshold_min=threshold_min,
-                                        seed=cfg.seed,
-                                        qd_offset=qd_offset)
+        if cfg.use_cvt_archive:
+            print("using cvt archive")
+            cvt_k_means_kwargs = cfg.cvt_k_means_kwargs
+            cvt_ckdtree_kwargs = cfg.cvt_ckdtree_kwargs
+            if cvt_k_means_kwargs == "":
+                print("no kmeans")
+                cvt_k_means_kwargs = None
+            if cvt_ckdtree_kwargs == "":
+                cvt_ckdtree_kwargs = None
+            print("loading archive df for cvt, getting solutions data...")
+            all_solutions = archive_df.solution_batch()
+            all_objectives = archive_df.objective_batch()
+            all_measures = archive_df.measures_batch()
+            all_metadata = archive_df.metadata_batch()
+            print("creating cvt")
+            archive = CVTArchive(solution_dim=solution_dim,
+                                cells=cfg.cvt_cells,
+                                ranges=bounds,
+                                learning_rate=archive_learning_rate,
+                                threshold_min=threshold_min,
+                                seed=cfg.seed,
+                                # qd_score_offset=qd_offset, 
+                                samples=cfg.cvt_samples, 
+                                custom_centroids=None,
+                                k_means_kwargs=cvt_k_means_kwargs, 
+                                use_kd_tree=cfg.cvt_use_kd_tree, 
+                                ckdtree_kwargs=cvt_ckdtree_kwargs)
+            print("adding df archive cvt..., num solutions = ", all_solutions.shape)
+            archive.add(all_solutions[0:1000], all_objectives[0:1000], all_measures[0:1000], all_metadata[0:1000])
+            i = 1001
+            end = min(i + 1000, all_solutions.shape[0])
+            while i < all_solutions.shape[0]:
+                end = min(i + 1000, all_solutions.shape[0])
+                archive.add(all_solutions[i:end], all_objectives[i:end], all_measures[i:end], all_metadata[i:end])
+                print(i, " to ", end)
+                i += 1000
+            print("cvt archive from df complete")
+                
+        else:
+            archive = archive_df_to_archive(archive_df,
+                                            solution_dim=solution_dim,
+                                            dims=archive_dims,
+                                            ranges=bounds,
+                                            learning_rate=archive_learning_rate,
+                                            threshold_min=threshold_min,
+                                            seed=cfg.seed,
+                                            qd_offset=qd_offset)
 
         if use_result_archive:
             result_archive = archive_df_to_archive(archive_df,
@@ -559,9 +598,14 @@ def train_ppga(cfg: AttrDict, vec_env):
 
 ENERGY_BOUNDS = {
         'ant': (0.0, 8.0),
-        'walker2d': [(0.0, 6.0),(0.0, 3.0)], #energy bounds, z height bounds
+        'walker2d': (0.0, 6.0),
         'humanoid': (0.0, 16.0)
 }
+
+HEIGHT_BOUNDS = {
+    'walker2d': (0.0, 3.0)
+}
+
 
 if __name__ == '__main__':
     cfg = parse_args()
@@ -589,7 +633,9 @@ if __name__ == '__main__':
         print("vec env: ")
         print(vec_env)
         cfg.energy_bounds = ENERGY_BOUNDS[cfg.env_name]
-
+        if cfg.env_name in HEIGHT_BOUNDS:
+             cfg.height_bounds = HEIGHT_BOUNDS[cfg.env_name]
+         
     if cfg.use_wandb:
         config_wandb(batch_size=cfg.batch_size, total_iters=cfg.total_iterations, run_name=cfg.wandb_run_name,
                      wandb_project=cfg.wandb_project, wandb_group=cfg.wandb_group, cfg=cfg)
