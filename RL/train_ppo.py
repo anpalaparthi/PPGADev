@@ -85,6 +85,8 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError(f'{cfg.env_type} is undefined for "env_type"')
 
+    print("is energy measures = ", cfg.is_energy_measures)
+
     cfg.batch_size = int(cfg.env_batch_size * cfg.rollout_length)
     cfg.num_envs = int(cfg.env_batch_size)
     cfg.num_emitters = 1
