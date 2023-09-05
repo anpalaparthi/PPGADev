@@ -67,7 +67,9 @@ def parse_args():
     parser.add_argument('--weight_decay', type=float, default=None, help='Apply L2 weight regularization to the NNs')
     # vestigial QD params
     parser.add_argument('--num_dims', type=int)
-
+    parser.add_argument('--is_energy_measures', type=lambda x: bool(strtobool(x)), default=False,
+                        help="use the wrapper with only forward reward and control cost part of measures")
+    parser.add_argument('--clip_obs_rew', type=lambda x: bool(strtobool(x)), default=False, help='Clip obs and rewards b/w -10 and 10')
     args = parser.parse_args()
     cfg = AttrDict(vars(args))
     return cfg
