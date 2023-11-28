@@ -10,78 +10,6 @@ from RL.ppo import PPO
 from models.actor_critic import Actor
 from ribs.archives import CVTArchive, GridArchive
 
-# envpool imports
-import gym
-import envpool
-import numpy as np
-from packaging import version
-
-import torch
-import cv2
-from collections import deque
-from collections import defaultdict
-
-is_legacy_gym = version.parse(gym.__version__) < version.parse("0.26.0")
-
-
-class RecordEpisodeStatistics(gym.Wrapper):
-
-  def __init__(self, env, deque_size=100):
-    super(RecordEpisodeStatistics, self).__init__(env)
-    self.num_envs = getattr(env, "num_envs", 1)
-    self.episode_returns = None
-    self.episode_lengths = None
-    # get if the env has lives
-    self.has_lives = False
-    env.reset()
-    info = env.step(np.zeros(self.num_envs, dtype=int))[-1]
-    if info["lives"].sum() > 0:
-      self.has_lives = True
-      print("env has lives")
-
-  def reset(self, **kwargs):
-    if is_legacy_gym:
-      observations = super(RecordEpisodeStatistics, self).reset(**kwargs)
-    else:
-      observations, _ = super(RecordEpisodeStatistics, self).reset(**kwargs)
-    self.episode_returns = np.zeros(self.num_envs, dtype=np.float32)
-    self.episode_lengths = np.zeros(self.num_envs, dtype=np.int32)
-    self.lives = np.zeros(self.num_envs, dtype=np.int32)
-    self.returned_episode_returns = np.zeros(self.num_envs, dtype=np.float32)
-    self.returned_episode_lengths = np.zeros(self.num_envs, dtype=np.int32)
-    return observations
-
-  def step(self, action):
-    if is_legacy_gym:
-      observations, rewards, dones, infos = super(
-        RecordEpisodeStatistics, self
-      ).step(action)
-    else:
-      observations, rewards, term, trunc, infos = super(
-        RecordEpisodeStatistics, self
-      ).step(action)
-      dones = term + trunc
-    self.episode_returns += infos["reward"]
-    self.episode_lengths += 1
-    self.returned_episode_returns[:] = self.episode_returns
-    self.returned_episode_lengths[:] = self.episode_lengths
-    all_lives_exhausted = infos["lives"] == 0
-    if self.has_lives:
-      self.episode_returns *= 1 - all_lives_exhausted
-      self.episode_lengths *= 1 - all_lives_exhausted
-    else:
-      self.episode_returns *= 1 - dones
-      self.episode_lengths *= 1 - dones
-    infos["r"] = self.returned_episode_returns
-    infos["l"] = self.returned_episode_lengths
-    return (
-      observations,
-      rewards,
-      dones,
-      infos,
-    )
-
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_name', type=str, help="Choose from [QDAntBulletEnv-v0,"
@@ -98,7 +26,7 @@ def parse_args():
 
     # algorithm args
     parser.add_argument('--total_timesteps', type=int, default=1000000)
-    parser.add_argument('--env_type', type=str, choices=['brax', 'isaac', 'envpool'], help='Whether to use cpu-envs or gpu-envs for rollouts')
+    parser.add_argument('--env_type', type=str, choices=['brax', 'isaac'], help='Whether to use cpu-envs or gpu-envs for rollouts')
     # args for brax
     parser.add_argument('--env_batch_size', default=1, type=int, help='Number of parallel environments to run')
 
@@ -145,8 +73,6 @@ def parse_args():
                         help="use the wrapper with only forward reward and control cost part of measures")
     parser.add_argument('--clip_obs_rew', type=lambda x: bool(strtobool(x)), default=False, help='Clip obs and rewards b/w -10 and 10')
 
-    parser.add_argument('--gym-id', type=str, default='Pong-v5', help='the id of the gym environment') # gym argument for envpool
-    
     args = parser.parse_args()
     cfg = AttrDict(vars(args))
     return cfg
@@ -161,19 +87,7 @@ if __name__ == '__main__':
     if cfg.env_type == 'brax':
         from envs.brax_custom.brax_env import make_vec_env_brax
         vec_env = make_vec_env_brax(cfg)
-        print("BRAX BRAX")
-    elif cfg.env_type == 'envpool': # add support for envpool environments
-        print("ENV ENV POOL POOL")
-        # num_envs_envpool = 8
-        vec_env = envpool.make(cfg.gym_id, env_type="gym", num_envs=int(cfg.env_batch_size), episodic_life=True, reward_clip=True)
-        vec_env.num_envs = int(cfg.env_batch_size)
-        vec_env.single_action_space = vec_env.action_space
-        print(f"action space orig: {vec_env.action_space}, {vec_env.action_space.shape}")
-        vec_env.single_observation_space = vec_env.observation_space
-        vec_env = RecordEpisodeStatistics(vec_env)
-        # TODO: maybe add record episode statistics
     else:
-        print("NOT ANYTHING")
         raise NotImplementedError(f'{cfg.env_type} is undefined for "env_type"')
 
     print("is energy measures = ", cfg.is_energy_measures)
@@ -182,18 +96,11 @@ if __name__ == '__main__':
         print(vec_env)
     cfg.batch_size = int(cfg.env_batch_size * cfg.rollout_length)
     cfg.num_envs = int(cfg.env_batch_size)
-    # if cfg.env_type == 'envpool':
-    #     cfg.num_envs = num_envs_envpool
     cfg.num_emitters = 1
     cfg.envs_per_model = cfg.num_envs // cfg.num_emitters
     cfg.minibatch_size = int(cfg.batch_size // cfg.num_minibatches)
     cfg.obs_shape = vec_env.single_observation_space.shape
-    print(f"obs shape: {cfg.obs_shape}")
-    if cfg.env_type == 'envpool':
-        cfg.single_action_space = vec_env.single_action_space
-    # else:
     cfg.action_shape = vec_env.single_action_space.shape
-    print(f"cfg action shape: {cfg.action_shape}")
 
     log.debug(f'Environment: {cfg.env_name}, obs_shape: {cfg.obs_shape}, action_shape: {cfg.action_shape}')
 
@@ -203,6 +110,4 @@ if __name__ == '__main__':
     alg = PPO(cfg)
     num_updates = cfg.total_timesteps // cfg.batch_size
     alg.train(vec_env, num_updates, rollout_length=cfg.rollout_length)
-
     sys.exit(0)
-	# TODO: add envpool environments

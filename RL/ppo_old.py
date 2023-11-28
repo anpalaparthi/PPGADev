@@ -16,22 +16,12 @@ from torch import Tensor
 
 from utils.utilities import log, save_checkpoint
 from models.vectorized import VectorizedActor
-from models.actor_critic import Actor, Critic, QDCritic, DiscreteActor
-import cv2
-from collections import deque
-from collections import defaultdict
-import os
+from models.actor_critic import Actor, Critic, QDCritic
+
 
 # based off of the clean-rl implementation
 # https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo_continuous_action.py
 
-
-def images2gif(imgs_path, zfill_length, video_path, video_filename, env_num=-1):
-
-  if env_num < 0: #if we want to save all envs in one video
-    os.system(f"ffmpeg -i {imgs_path}/step_%0{zfill_length}d.png -vcodec mpeg4 {video_path}/{video_filename}.avi")
-  else:
-    os.system(f"ffmpeg -i {imgs_path}/env_{env_num}_step_%0{zfill_length}d.png -vcodec mpeg4 {video_path}/env_{env_num}_{video_filename}.avi")
 
 def calculate_discounted_sum_torch(
         x: Tensor, dones: Tensor, discount: float, x_last: Optional[Tensor] = None
@@ -57,31 +47,19 @@ def calculate_discounted_sum_torch(
 class PPO:
     def __init__(self, cfg):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f"cuda enabled: {torch.cuda.is_available()}")
         self.cfg = cfg
         self.seed = cfg.seed
         self.num_envs = cfg.num_envs
         self.obs_shape = cfg.obs_shape
         self.action_shape = cfg.action_shape
-        if(cfg.env_type == 'envpool'):
-            self.single_action_space = cfg.single_action_space
 
-        if (cfg.env_type == 'envpool'):
-            agent = DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
-        else:
-            agent = Actor(self.obs_shape, self.action_shape, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
-        
+        agent = Actor(self.obs_shape, self.action_shape, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
         self._agents = [agent]
         critic = QDCritic(self.obs_shape, measure_dim=cfg.num_dims).to(self.device)
         self.qd_critic = critic
-
-        if (self.cfg.env_type == 'envpool'):
-            self.vec_inference = self._agents[0]
-        else:
-            self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
+        self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
                                              action_shape=self.action_shape, normalize_obs=cfg.normalize_obs,
-                                             normalize_returns=cfg.normalize_returns, env_type=cfg.env_type).to(self.device)
-
+                                             normalize_returns=cfg.normalize_returns).to(self.device)
         self.vec_optimizer = torch.optim.Adam(self.vec_inference.parameters(), lr=cfg.learning_rate, eps=1e-5)
         self.qd_critic_optim = torch.optim.Adam(self.qd_critic.parameters(), lr=cfg.learning_rate, eps=1e-5)
         self._theta = None  # nn params. Used for compatibility with DQD side
@@ -129,18 +107,12 @@ class PPO:
 
     @property
     def agents(self):
-        if (self.cfg.env_typ != 'envpool'):
-            return self.vec_inference.vec_to_models()
-        else:
-            return self._agents
+        return self.vec_inference.vec_to_models()
 
     @agents.setter
     def agents(self, agents):
         self._agents = agents
-        if (self.cfg.env_type == 'envpool'):
-            self.vec_inference = self._agents[0]
-        else:
-            self.vec_inference = VectorizedActor(self._agents, Actor, self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns, env_type=self.cfg.env_type)
+        self.vec_inference = VectorizedActor(self._agents, Actor, self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns)
         self.vec_optimizer = torch.optim.Adam(self.vec_inference.parameters(), lr=self.cfg.learning_rate, eps=1e-5)
 
     @property
@@ -177,7 +149,7 @@ class PPO:
 
     # noinspection NonAsciiCharacters
     def calculate_rewards(self, next_obs, next_done, rewards, values, dones, rollout_length, calculate_dqd_gradients=False,
-                          move_mean_agent=False, env_type="brax"):
+                          move_mean_agent=False):
         # bootstrap value if not done
         with torch.no_grad():
             if calculate_dqd_gradients:
@@ -198,9 +170,6 @@ class PPO:
                     next_value = self.mean_critic.get_value(next_obs).reshape(1, -1).to(self.device)
                 else:
                     # standard ppo
-                    if (env_type == 'envpool'):
-                            # print("CALC REWARD ENVPOOL")
-                            next_obs = torch.reshape(next_obs, (-1, next_obs.shape[1] * next_obs.shape[2] * next_obs.shape[3]))
                     next_value = self.qd_critic.get_value(next_obs).reshape(1, -1).to(self.device)
 
                 if self.cfg.normalize_returns:
@@ -228,14 +197,8 @@ class PPO:
             (b_obs, b_logprobs, b_actions, b_advantages, b_returns) = batched_data
             batch_size = b_obs.shape[1]
             minibatch_size = batch_size // self.cfg.num_minibatches
-            # print("batch size = ", batch_size)
-            # print("self.cfg.num_minibatches = ", self.cfg.num_minibatches)
-            # print("minibatch_size = ", minibatch_size)
 
-            if (self.cfg.env_type == 'envpool') :
-                obs_dim, action_dim = self.obs_shape[0], self.action_shape
-            else:
-                obs_dim, action_dim = self.obs_shape[0], self.action_shape[0]
+            obs_dim, action_dim = self.obs_shape[0], self.action_shape[0]
 
             b_inds = torch.arange(batch_size)
             clipfracs = []
@@ -247,12 +210,9 @@ class PPO:
                 end = start + minibatch_size
                 mb_inds = b_inds[start:end]
 
-                if (self.cfg.env_type != 'envpool'):
-                    _, newlogprob, entropy = self.vec_inference.get_action(b_obs[:, mb_inds].reshape(-1, obs_dim),
-                                                                        b_actions[:, mb_inds].reshape(-1, action_dim))
-                else:
-                    _, newlogprob, entropy = self.vec_inference.get_action(torch.squeeze(b_obs[:, mb_inds]), b_actions[:, mb_inds])
-                
+                _, newlogprob, entropy = self.vec_inference.get_action(b_obs[:, mb_inds].reshape(-1, obs_dim),
+                                                                       b_actions[:, mb_inds].reshape(-1, action_dim))
+
                 if calculate_dqd_gradients:
                     newvalue = []
                     for i in range(self.cfg.num_dims + 1):
@@ -262,13 +222,7 @@ class PPO:
                     newvalue = self.mean_critic.get_value(b_obs[:, mb_inds].reshape(-1, obs_dim))
                 else:
                     # standard ppo
-                    if (self.cfg.env_type == 'envpool'):
-                        obs_temp = b_obs[:, mb_inds]
-                        # print('obs temp before shape = ', obs_temp.shape)
-                        obs_temp = torch.reshape(obs_temp, (-1, obs_temp.shape[2] * obs_temp.shape[3] * obs_temp.shape[4]))
-                        newvalue = self.qd_critic.get_value(obs_temp)
-                    else:
-                        newvalue = self.qd_critic.get_value(b_obs[:, mb_inds].reshape(-1, obs_dim))
+                    newvalue = self.qd_critic.get_value(b_obs[:, mb_inds].reshape(-1, obs_dim))
 
                 logratio = newlogprob - b_logprobs[:, mb_inds].flatten()
                 ratio = logratio.exp()
@@ -336,16 +290,13 @@ class PPO:
               negative_measure_gradients=False):
         global_step = 0
         self.next_obs = vec_env.reset()
-        if (self.cfg.env_type == 'envpool'):
-            self.next_obs = torch.from_numpy(self.next_obs).float()
-
         # print("self.next_obs")
-        # print(type(self.next_obs))
+        # print(self.next_obs.shape)
         # print(self.next_obs)
         if self.cfg.normalize_obs:
-            print("normalize")
-            self.next_obs = self.vec_inference.vec_normalize_obs(self.next_obs, self.cfg.env_type)
-        # print("after normalize self.next_obs.shape = ", self.next_obs.shape)
+            # print("normalize")
+            self.next_obs = self.vec_inference.vec_normalize_obs(self.next_obs)
+        # print(self.next_obs.shape)
 
         if calculate_dqd_gradients:
             solution_params = self._agents[0].serialize()
@@ -356,11 +307,7 @@ class PPO:
                 original_return_normalizer = self._agents[0].return_normalizer
             # create copy of agent for f and one of each m
             agent_original_params = [copy.deepcopy(solution_params) for _ in range(self.cfg.num_dims + 1)]
-            if (self.cfg.env_type == 'envpool'):
-                agents = [DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(params) for params in
-                      agent_original_params]
-            else:
-                agents = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(params) for params in
+            agents = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(params) for params in
                       agent_original_params]
             self.agents = agents
 
@@ -373,17 +320,7 @@ class PPO:
                     # print("step = ", step)
                     global_step += self.num_envs
 
-                    # print("self.obs.shape = ", self.obs.shape)
-                    # print("self.obs[step].shape = ", self.obs[step].shape)
-                    # print("self.next_obs.shape = ", self.next_obs.shape)
                     self.obs[step] = self.next_obs
-                    self.next_obs = self.next_obs.to(self.device)
-
-                    tmp = self.next_obs.reshape(num_agents, self.cfg.num_envs // num_agents, -1)
-                    # print("tmp.shape = ", tmp.shape)
-
-                    # print("self.obs[step].type = ", type(self.next_obs))
-                    # print("self.obs[step].device = ", self.next_obs.device)
 
                     action, logprob, _ = self.vec_inference.get_action(self.next_obs)
                     # b/c of torch amp, need to convert back to float32
@@ -398,50 +335,24 @@ class PPO:
                         value = self.mean_critic.get_value(self.next_obs)
                     else:
                         # standard ppo. Maintains backwards compatibility
-                        # print("self.next_obs.type", type(self.next_obs))
-                        # print("self.next_obs.dtype", self.next_obs.dtype)
-                        # self.next_obs = self.next_obs.float()
-                        # print("update self.next_obs.dtype", self.next_obs.dtype)
-                        # print("get value self.next_obs.shape = ", self.next_obs.shape)
-                        if (self.cfg.env_type == 'envpool'):
-                            self.next_obs = torch.reshape(self.next_obs, (-1, self.next_obs.shape[1] * self.next_obs.shape[2] * self.next_obs.shape[3]))
                         value = self.qd_critic.get_value(self.next_obs)
 
-                    # print("self.actions = ", self.actions.shape)
-                    # print("self.actions[step] = ", self.actions[step].shape)
-                    # print("action = ", action.shape)
                     self.values[step] = value.flatten()
                     self.actions[step] = action
                     self.logprobs[step] = logprob
 
-                    if (self.cfg.env_type == 'envpool'):
-                        action = action.type(torch.int32)
-                        action = action.cpu().numpy()
-
-                    # print("action.shape = ", action.shape)
                     self.next_obs, reward, dones, infos = vec_env.step(action)
-                    if (self.cfg.env_type == 'envpool'):
-                        self.next_obs = torch.from_numpy(self.next_obs).float()
                     if self.cfg.normalize_obs:
-                        self.next_obs = self.vec_inference.vec_normalize_obs(self.next_obs, env_type=self.cfg.env_type)
+                        self.next_obs = self.vec_inference.vec_normalize_obs(self.next_obs)
 
-                    # print("infos = ", infos)
-                    # print("infos[TimeLimit.truncated] = ", infos['TimeLimit.truncated'])
-                    if (self.cfg.env_type == 'envpool'):
-                        self.truncated[step] = torch.from_numpy(infos['TimeLimit.truncated']).to(self.device)
-                    else:
-                        self.truncated[step] = infos['truncation']
-                    dones = torch.from_numpy(dones).to(self.device)
+                    self.truncated[step] = infos['truncation']
                     self.dones[step] = dones.view(-1)
-                    if (self.cfg.num_dims != 0):
-                        measures = -infos['measures'] if negative_measure_gradients else infos['measures']
-                        self.measures[step] = measures
+                    measures = -infos['measures'] if negative_measure_gradients else infos['measures']
+                    self.measures[step] = measures
                     if move_mean_agent:
                         rew_measures = torch.cat((reward.unsqueeze(1), measures), dim=1)
                         rew_measures *= self._grad_coeffs
                         reward = rew_measures.sum(dim=1)
-                    if (self.cfg.env_type == 'envpool'):
-                        reward = torch.from_numpy(reward) 
                     reward = reward.cpu()
                     self.total_rewards += reward
                     self.ep_len += 1
@@ -475,7 +386,7 @@ class PPO:
                 else:
                     advantages, returns = self.calculate_rewards(self.next_obs, dones, self.rewards, self.values,
                                                                  self.dones, rollout_length=rollout_length,
-                                                                 move_mean_agent=move_mean_agent, env_type=self.cfg.env_type)
+                                                                 move_mean_agent=move_mean_agent)
                 # normalize the returns
                 if self.cfg.normalize_returns:
                     for i, single_step_returns in enumerate(returns):
@@ -501,7 +412,7 @@ class PPO:
                 var_y = np.var(y_true)
                 explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
-                # avg_log_stddev = self.vec_inference.actor_logstd.mean().detach().cpu().numpy()
+                avg_log_stddev = self.vec_inference.actor_logstd.mean().detach().cpu().numpy()
                 avg_obj_magnitude = self.rewards.mean()
 
                 train_elapse = time.time() - train_start
@@ -512,7 +423,7 @@ class PPO:
 
                 if self.cfg.use_wandb:
                     wandb.log({
-                        # "charts/actor_avg_logstd": avg_log_stddev,
+                        "charts/actor_avg_logstd": avg_log_stddev,
                         "charts/average_rew_magnitude": avg_obj_magnitude,
                         f"losses/{move_mean_agent=}/value_loss": v_loss.item(),
                         "losses/value_loss": v_loss.item(),
@@ -581,10 +492,7 @@ class PPO:
         if not calculate_dqd_gradients and not move_mean_agent:
             # standard ppo
             log.debug("Saving checkpoint...")
-            if (self.cfg.env_type != 'envpool'):
-                trained_models = self.vec_inference.vec_to_models()
-            else:
-                trained_models = self._agents
+            trained_models = self.vec_inference.vec_to_models()
             for i in range(num_agents):
                 save_checkpoint('checkpoints', f'{self.cfg.env_name}_{self.cfg.env_type}_model_{i}_checkpoint',
                                 trained_models[i],
@@ -595,17 +503,9 @@ class PPO:
             new_params = np.array([agent.serialize() for agent in trained_agents])
             jacobian = (new_params - agent_original_params).reshape(self.cfg.num_emitters, self.cfg.num_dims + 1, -1)
 
-            if (self.cfg.env_type == 'envpool'):
-                original_agent = [DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
-                                    self.device)]
-            else:
-                original_agent = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
-                                    self.device)]
-
-            if (self.cfg.env_type == 'envpool'):
-                self.vec_inference = original_agent[0]
-            else:
-                self.vec_inference = VectorizedActor(original_agent, Actor, self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns, env_type=self.cfg.env_type)
+            original_agent = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
+                self.device)]
+            self.vec_inference = VectorizedActor(original_agent, Actor, self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns)
             f, m, metadata = self.evaluate(self.vec_inference,
                                            vec_env=vec_env,
                                            obs_normalizer=original_obs_normalizer,
@@ -614,85 +514,6 @@ class PPO:
                 m.reshape(self.vec_inference.num_models, -1), \
                 jacobian, \
                 metadata
-
-        self.visualize(vec_env)
-
-    def visualize(self, vec_env):
-        print("**************************EVALUATE AND VISUALIZE***************************")
-        eval_global_step = 0
-        eval_start_time = time.time()
-        eval_next_obs = torch.Tensor(vec_env.reset()).to(self.device)
-        eval_next_done = torch.zeros(vec_env.num_envs).to(self.device)
-        eval_num_updates = self.cfg.total_timesteps // self.cfg.batch_size
-        eval_num_steps = 2000
-
-        # ALGO Logic: Storage setup
-        eval_obs = torch.zeros(
-        (eval_num_steps, vec_env.num_envs) + vec_env.single_observation_space.shape
-        ).to(self.device)
-        eval_actions = torch.zeros(
-        (eval_num_steps, vec_env.num_envs) + self.cfg.action_shape
-        ).to(self.device)
-        eval_logprobs = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
-        eval_rewards = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
-        eval_dones = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
-        eval_values = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
-        eval_avg_returns = deque(maxlen=20)
-        eval_img_path = "/home/icaros/Documents/PPGADev/envpool_imgs"
-        eval_video_path = "/home/icaros/Documents/PPGADev/envpool_imgs/videos"
-        eval_zfill_length = 5
-
-        for step in range(0, eval_num_steps):
-            if ((step % 100 == 0)):
-                print("img step = ", step)
-            eval_global_step += 1 * vec_env.num_envs
-            eval_obs[step] = eval_next_obs
-            eval_dones[step] = eval_next_done
-
-
-            # ALGO LOGIC: action logic
-            with torch.no_grad():
-                # eval_action, eval_logprob, _, eval_value = agent.get_action_and_value(eval_next_obs)
-                eval_action, eval_logprob, _ = self.vec_inference.get_action(eval_next_obs)
-                if (self.cfg.env_type == 'envpool'):
-                    # print("CALC REWARD ENVPOOL")
-                    eval_next_obs = torch.reshape(eval_next_obs, (-1, eval_next_obs.shape[1] * eval_next_obs.shape[2] * eval_next_obs.shape[3]))
-                eval_value = self.qd_critic.get_value(eval_next_obs).reshape(1, -1).to(self.device)
-                
-                # eval_value = self.qd_critic.get_value(eval_next_obs)
-                eval_values[step] = eval_value.flatten()
-            # print("vec_env.single_action_space.shape = ", self.cfg.action_shape)
-            # print('eval_actions shape = ', eval_actions.shape)
-            # print('eval_action shape = ', eval_actions.shape)
-            eval_actions[step] = eval_action
-            eval_logprobs[step] = eval_logprob
-
-            # TRY NOT TO MODIFY: execute the game and log data.
-            eval_next_obs, eval_reward, eval_done, eval_info = vec_env.step(eval_action.cpu().numpy())
-            eval_rewards[step] = torch.tensor(eval_reward).to(self.device).view(-1)
-            eval_next_obs, eval_next_done = torch.Tensor(eval_next_obs).to(self.device), torch.Tensor(eval_done).to(self.device)
-
-            # save images
-            ids = np.asarray(eval_info["env_id"])
-            ids = ids[~eval_done]
-            img_list = []
-            img_dict = defaultdict(lambda: [])
-            if cv2 is not None:
-                eval_obs_all = np.zeros((84, 84 * vec_env.num_envs, 3), np.uint8)
-                for i, j in enumerate(ids):
-                    eval_obs_all[:, 84 * j:84 * (j+1)] = eval_next_obs[i, 1:].cpu().permute(1, 2, 0)
-                    img_list.append(eval_obs_all)
-                    for env_num in range(vec_env.num_envs):
-                        eval_obs_env = eval_obs_all[:, 84 * env_num:84 * (env_num + 1)]
-                        img_dict[env_num].append(eval_obs_env)
-                        if not cv2.imwrite(f"{eval_img_path}/env_{env_num}_step_{str(step).zfill(eval_zfill_length)}.png", eval_obs_env):
-                            print(f"image write failed step {step}")
-                if not cv2.imwrite(f"{eval_img_path}/step_{str(step).zfill(eval_zfill_length)}.png", eval_obs_all):
-                    print(f"image write failed step {step}")
-        images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall_all")
-        for env_num in range(vec_env.num_envs):
-            images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall", env_num)
-
 
     def evaluate(self, vec_agent, vec_env, verbose=True, obs_normalizer=None, return_normalizer=None):
         '''
@@ -706,8 +527,6 @@ class PPO:
         num_steps = 1000
 
         obs = vec_env.reset()
-        if (self.cfg.env_type == 'envpool'):
-            obs = torch.from_numpy(obs)
         obs = obs.to(self.device)
         dones = torch.BoolTensor([False for _ in range(vec_env.num_envs)])
         all_dones = torch.zeros((num_steps, vec_env.num_envs)).to(self.device)
@@ -724,8 +543,6 @@ class PPO:
                 acts, _, _ = vec_agent.get_action(obs)
                 acts = acts.to(torch.float32)
                 obs, rew, next_dones, infos = vec_env.step(acts)
-                if (self.cfg.env_type == 'envpool'):
-                    obs = torch.from_numpy(obs)
                 measures_acc[traj_length] = infos['measures']
                 obs = obs.to(self.device)
                 total_reward += rew.detach().cpu().numpy() * ~dones.cpu().numpy()

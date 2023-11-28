@@ -7,13 +7,13 @@ import numpy as np
 from models.policy import StochasticPolicy
 from typing import Union, Optional
 from attrdict import AttrDict
+from torch.distributions.categorical import Categorical
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
-
 
 class Actor(StochasticPolicy):
     def __init__(self,
@@ -22,7 +22,7 @@ class Actor(StochasticPolicy):
                  normalize_obs: bool = False,
                  normalize_returns: bool = False):
         StochasticPolicy.__init__(self, normalize_obs=normalize_obs, obs_shape=obs_shape, normalize_returns=normalize_returns)
-
+        print(f"action shape: {action_shape}, prod shape: {np.prod(action_shape)}")
         self.actor_mean = nn.Sequential(
             layer_init(nn.Linear(np.array(obs_shape).prod(), 128)),
             nn.Tanh(),
@@ -45,6 +45,64 @@ class Actor(StochasticPolicy):
             action = probs.sample()
         return action, probs.log_prob(action).sum(1), probs.entropy()
 
+
+class DiscreteActor(StochasticPolicy):
+    def __init__(self,
+                 obs_shape: Union[int, tuple],
+                 action_shape: np.ndarray,
+                 single_action_space_n: int, 
+                 normalize_obs: bool = False,
+                 normalize_returns: bool = False):
+        StochasticPolicy.__init__(self, normalize_obs=normalize_obs, obs_shape=obs_shape, normalize_returns=normalize_returns)
+        self.network = nn.Sequential(
+            layer_init(nn.Conv2d(4, 32, 8, stride=4)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+            nn.ReLU(),
+            nn.Flatten(),
+            layer_init(nn.Linear(64 * 7 * 7, 512)),
+            nn.ReLU(),
+            # layer_init(nn.Linear(512, action_shape), std=0.01)
+        )
+        self.num_models = 1
+        # self.actor = layer_init(nn.Linear(512, action_shape), std=0.01)
+        self.actor = layer_init(nn.Linear(512, single_action_space_n), std=0.01)
+        if normalize_obs:
+            self.obs_normalizers = [self.obs_normalizer]
+        if normalize_returns:
+            self.rew_normalizers = [self.return_normalizer]
+
+    def forward(self, x):
+        return self.actor(self.network(x / 255.0))
+
+    def get_action(self, obs, action=None):
+        hidden = self.network(obs / 255.0)
+        logits = self.actor(hidden)
+        # logits = self.actor_mean(obs)
+        probs = Categorical(logits=logits)
+        # print("logits = ", logits.shape)
+        if action is None:
+            action = probs.sample()
+        # print("action probs sample = ", action.shape)
+        return action, probs.log_prob(action), probs.entropy()
+
+    def vec_normalize_obs(self, obs, env_type='envpool'):
+        # TODO: make this properly vectorized
+        # print("vec normalize obs.shape = ", obs.shape)
+        return self.obs_normalizer(obs)
+    
+    def vec_normalize_returns(self, rewards, env_type='envpool'):
+        # TODO: make this properly vectorized
+        # num_envs = rewards.shape[0]
+        # envs_per_model = num_envs // self.num_models
+        # envs_per_model = num_envs
+        # rewards = rewards.reshape(self.num_models, envs_per_model)
+        # for i, (model_rews, normalizer) in enumerate(zip(rewards, self.rew_normalizers)):
+        #     rewards[i] = normalizer(model_rews)
+        # return rewards.reshape(-1)
+        return self.return_normalizer(rewards)
 
 class PGAMEActor(nn.Module):
     def __init__(self, obs_shape, action_shape):
@@ -200,4 +258,5 @@ class QDCritic(CriticBase):
         '''
         Implemented for backwards compatibility
         '''
+        # print("get value obs = ", obs.shape)
         return self.all_critics[0](obs)
