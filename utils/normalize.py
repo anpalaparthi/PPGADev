@@ -25,6 +25,9 @@ class RunningMeanStd(nn.Module):
     def update_from_moments(self, batch_mean, batch_var, batch_count):
         batch_mean = batch_mean.to(self.mean.device)
         batch_var = batch_var.to(self.var.device)
+        # print("batch mean shape = ", batch_mean.shape)
+        # print("self.mean shape = ", self.mean.shape)
+
         delta = batch_mean - self.mean
         tot_count = self.count + batch_count
 

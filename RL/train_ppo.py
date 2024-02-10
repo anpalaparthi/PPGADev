@@ -22,6 +22,14 @@ from collections import deque
 from collections import defaultdict
 
 is_legacy_gym = version.parse(gym.__version__) < version.parse("0.26.0")
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:4096"
+print("os env = ", os.environ["PYTORCH_CUDA_ALLOC_CONF"])
+
+def force_cudnn_initialization():
+    s = 32
+    dev = torch.device('cuda')
+    torch.nn.functional.conv2d(torch.zeros(s, s, s, s, device=dev), torch.zeros(s, s, s, s, device=dev))
 
 
 class RecordEpisodeStatistics(gym.Wrapper):
@@ -153,6 +161,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    force_cudnn_initialization()
     cfg = parse_args()
 
     if cfg.seed is None:

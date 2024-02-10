@@ -1,0 +1,74 @@
+
+[36m[2023-07-16 23:44:51,490][261132] Environment walker2d, action_dim=6, obs_dim=17
+bounds:
+[(0.0, 1.0), (0.0, 1.0), (0.0, 6.0)]
+using cvt archive
+no kmeans
+[36m[2023-07-16 23:44:54,175][261132] Created Scheduler for cma_maega with an archive learning rate of 0.5, and add mode batch, using solution dim 19596 and archive dims [50, 50, 50]. Min threshold is 200.0. Restart rule is no_improvement
+[36m[2023-07-16 23:45:08,578][261132] train() took 11.72 seconds to complete
+[36m[2023-07-16 23:45:08,578][261132] FPS: 327766.66
+branched sols
+[[-0.03624773 -0.02320858 -0.07224493 ...  0.02166511  0.04340152
+  -0.01938882]
+ [ 0.15733159  0.11724667 -0.00180063 ...  0.03848943  0.08824243
+  -0.0053532 ]
+ [-0.17978966 -0.13714878 -0.13123263 ...  0.00639055  0.03796075
+  -0.05530917]
+ ...
+ [-0.46874958 -0.35189515 -0.1899147  ...  0.03075769  0.07260455
+  -0.02912595]
+ [-0.20432603 -0.14490741 -0.10692261 ...  0.0513462   0.08334753
+   0.01078096]
+ [-0.13262802 -0.11060371 -0.03514918 ... -0.01855606 -0.00089837
+  -0.03426587]]
+[36m[2023-07-16 23:45:11,396][261132] Finished Evaluation Step
+[37m[1m[2023-07-16 23:45:11,397][261132] Reward + Measures: [[-93.14956002   0.73075193   0.72864372   3.09581447]]
+[37m[1m[2023-07-16 23:45:11,397][261132] Max Reward on eval: -93.14956001578625
+[37m[1m[2023-07-16 23:45:11,398][261132] Min Reward on eval: -93.14956001578625
+[37m[1m[2023-07-16 23:45:11,398][261132] Mean Reward across all agents: -93.14956001578625
+[37m[1m[2023-07-16 23:45:11,398][261132] Average Trajectory Length: 1000.0
+[36m[2023-07-16 23:45:15,287][261132] Finished Evaluation Step
+[37m[1m[2023-07-16 23:45:15,288][261132] Reward + Measures: [[-157.96773597    0.89120001    0.64219999    3.17279506]
+[37m[1m [-123.69564538    0.87840003    0.40760002    3.29090118]
+[37m[1m [-165.10156664    0.81290001    0.77679998    3.12998414]
+[37m[1m ...
+[37m[1m [ -78.90390806    0.41560003    0.43350002    3.23334289]
+[37m[1m [ -68.40851814    0.68650001    0.49200001    3.20102096]
+[37m[1m [-101.21855127    0.63350004    0.83700001    3.13300085]]
+[37m[1m[2023-07-16 23:45:15,288][261132] Max Reward on eval: 116.71476595791064
+[37m[1m[2023-07-16 23:45:15,289][261132] Min Reward on eval: -165.10156664020988
+[37m[1m[2023-07-16 23:45:15,289][261132] Mean Reward across all agents: -69.72057434034122
+[37m[1m[2023-07-16 23:45:15,290][261132] Average Trajectory Length: 1000.0
+[36m[2023-07-16 23:45:15,533][261132] mean_value=-269.7205743403412, max_value=-83.28523404208936
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 600, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 446, in train_ppga
+    restarted = scheduler.tell(objs, measures, metadata)
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/schedulers/_scheduler.py", line 331, in tell
+    stop_status = emitter.tell(self._solution_batch[pos:end],
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/emitters/_proximal_policy_gradient_arborescence_emitter.py", line 309, in tell
+    new_elite = self.archive.sample_elites(1)
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/archives/_archive_base.py", line 1018, in sample_elites
+    raise IndexError("No elements in archive.")
+IndexError: No elements in archive.
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 600, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 446, in train_ppga
+    restarted = scheduler.tell(objs, measures, metadata)
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/schedulers/_scheduler.py", line 331, in tell
+    stop_status = emitter.tell(self._solution_batch[pos:end],
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/emitters/_proximal_policy_gradient_arborescence_emitter.py", line 309, in tell
+    new_elite = self.archive.sample_elites(1)
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/archives/_archive_base.py", line 1018, in sample_elites
+    raise IndexError("No elements in archive.")
+IndexError: No elements in archive.

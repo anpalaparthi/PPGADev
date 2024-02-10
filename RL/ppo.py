@@ -689,9 +689,12 @@ class PPO:
                             print(f"image write failed step {step}")
                 if not cv2.imwrite(f"{eval_img_path}/step_{str(step).zfill(eval_zfill_length)}.png", eval_obs_all):
                     print(f"image write failed step {step}")
+        print("finished creating images")
         images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall_all")
+        print("finished images2gif recall all")
         for env_num in range(vec_env.num_envs):
             images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall", env_num)
+        print("finished visualize")
 
 
     def evaluate(self, vec_agent, vec_env, verbose=True, obs_normalizer=None, return_normalizer=None):

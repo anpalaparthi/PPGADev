@@ -13,6 +13,7 @@ python -u -m RL.train_ppo --env_name=$ENV_NAME \
                                      --wandb_group=qdrl \
                                      --num_minibatches=8 \
                                      --update_epochs=4 \
+                                     --total_timesteps=1_000_000_000 \
 				     --env_type=brax \
 				     --num_dims=5 \
                                      --normalize_obs=True \

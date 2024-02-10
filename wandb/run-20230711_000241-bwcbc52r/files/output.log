@@ -1,0 +1,111 @@
+bounds:
+[(0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 4.0)]
+using cvt archive
+no kmeans
+[36m[2023-07-11 00:02:45,154][233662] Environment ant, action_dim=8, obs_dim=87
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Exception ignored in: 'sklearn.cluster._k_means_common._relocate_empty_clusters_dense'
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt:
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Exception ignored in: 'sklearn.cluster._k_means_common._relocate_empty_clusters_dense'
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt:
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Exception ignored in: 'sklearn.cluster._k_means_common._relocate_empty_clusters_dense'
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt:
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Exception ignored in: 'sklearn.cluster._k_means_common._relocate_empty_clusters_dense'
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt:
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt
+Exception ignored in: 'sklearn.cluster._k_means_common._relocate_empty_clusters_dense'
+Traceback (most recent call last):
+  File "<__array_function__ internals>", line 179, in where
+KeyboardInterrupt:
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 599, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 349, in train_ppga
+    scheduler = create_scheduler(cfg, use_result_archive=use_result_archive)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 236, in create_scheduler
+    archive = CVTArchive(solution_dim=solution_dim,
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/archives/_cvt_archive.py", line 184, in __init__
+    self._centroids = k_means(self._samples, self._cells,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/utils/_param_validation.py", line 192, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/cluster/_kmeans.py", line 420, in k_means
+    est = KMeans(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/cluster/_kmeans.py", line 1468, in fit
+    labels, inertia, centers, n_iter_ = kmeans_single(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/cluster/_kmeans.py", line 681, in _kmeans_single_lloyd
+    lloyd_iter(
+  File "sklearn/cluster/_k_means_lloyd.pyx", line 92, in sklearn.cluster._k_means_lloyd.lloyd_iter_chunked_dense
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/utils/extmath.py", line 77, in row_norms
+    norms = np.einsum("ij,ij->i", X, X)
+  File "<__array_function__ internals>", line 200, in einsum
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/numpy/core/einsumfunc.py", line 1371, in einsum
+    return c_einsum(*operands, **kwargs)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 599, in <module>
+    train_ppga(cfg, vec_env)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 349, in train_ppga
+    scheduler = create_scheduler(cfg, use_result_archive=use_result_archive)
+  File "/home/icaros/Documents/PPGADev/algorithm/train_ppga.py", line 236, in create_scheduler
+    archive = CVTArchive(solution_dim=solution_dim,
+  File "/home/icaros/Documents/PPGA/pyribs/ribs/archives/_cvt_archive.py", line 184, in __init__
+    self._centroids = k_means(self._samples, self._cells,
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/utils/_param_validation.py", line 192, in wrapper
+    return func(*args, **kwargs)
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/cluster/_kmeans.py", line 420, in k_means
+    est = KMeans(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/cluster/_kmeans.py", line 1468, in fit
+    labels, inertia, centers, n_iter_ = kmeans_single(
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/cluster/_kmeans.py", line 681, in _kmeans_single_lloyd
+    lloyd_iter(
+  File "sklearn/cluster/_k_means_lloyd.pyx", line 92, in sklearn.cluster._k_means_lloyd.lloyd_iter_chunked_dense
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/sklearn/utils/extmath.py", line 77, in row_norms
+    norms = np.einsum("ij,ij->i", X, X)
+  File "<__array_function__ internals>", line 200, in einsum
+  File "/home/icaros/anaconda3/envs/ppga/lib/python3.9/site-packages/numpy/core/einsumfunc.py", line 1371, in einsum
+    return c_einsum(*operands, **kwargs)
+KeyboardInterrupt

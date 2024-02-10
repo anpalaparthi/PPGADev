@@ -3,8 +3,8 @@
     "seed": 1111,
     "torch_deterministic": false,
     "use_wandb": true,
-    "wandb_run_name": "energy_1000_paper_ppga_ant_seed_1111",
-    "wandb_group": "paper",
+    "wandb_run_name": "energy_cvt_1000_no_terminateant_seed_1111",
+    "wandb_group": "qdrl",
     "wandb_project": "PPGA",
     "env_batch_size": 3000,
     "report_interval": 5,
@@ -29,7 +29,7 @@
     "weight_decay": null,
     "clip_obs_rew": false,
     "num_emitters": 1,
-    "grid_size": 7,
+    "grid_size": 10,
     "num_dims": 5,
     "popsize": 300,
     "log_arch_freq": 10,
@@ -64,6 +64,10 @@
     ],
     "action_shape": [
         8
+    ],
+    "energy_bounds": [
+        0.0,
+        8.0
     ],
     "outdir": "./experiments/paper_ppga_ant/1111"
 }
