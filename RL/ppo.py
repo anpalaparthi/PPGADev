@@ -22,16 +22,18 @@ from collections import deque
 from collections import defaultdict
 import os
 
+
 # based off of the clean-rl implementation
 # https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo_continuous_action.py
 
 
 def images2gif(imgs_path, zfill_length, video_path, video_filename, env_num=-1):
+    if env_num < 0:  # if we want to save all envs in one video
+        os.system(f"ffmpeg -i {imgs_path}/step_%0{zfill_length}d.png -vcodec mpeg4 {video_path}/{video_filename}.avi")
+    else:
+        os.system(
+            f"ffmpeg -i {imgs_path}/env_{env_num}_step_%0{zfill_length}d.png -vcodec mpeg4 {video_path}/env_{env_num}_{video_filename}.avi")
 
-  if env_num < 0: #if we want to save all envs in one video
-    os.system(f"ffmpeg -i {imgs_path}/step_%0{zfill_length}d.png -vcodec mpeg4 {video_path}/{video_filename}.avi")
-  else:
-    os.system(f"ffmpeg -i {imgs_path}/env_{env_num}_step_%0{zfill_length}d.png -vcodec mpeg4 {video_path}/env_{env_num}_{video_filename}.avi")
 
 def calculate_discounted_sum_torch(
         x: Tensor, dones: Tensor, discount: float, x_last: Optional[Tensor] = None
@@ -63,24 +65,29 @@ class PPO:
         self.num_envs = cfg.num_envs
         self.obs_shape = cfg.obs_shape
         self.action_shape = cfg.action_shape
-        if(cfg.env_type == 'envpool'):
+
+        self.single_action_space = None
+        if cfg.env_type == 'envpool':
             self.single_action_space = cfg.single_action_space
 
-        if (cfg.env_type == 'envpool'):
-            agent = DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
+        if cfg.env_type == 'envpool':
+            agent = DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n,
+                                  normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(
+                self.device)
         else:
-            agent = Actor(self.obs_shape, self.action_shape, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
-        
+            agent = Actor(self.obs_shape, self.action_shape, normalize_obs=cfg.normalize_obs,
+                          normalize_returns=cfg.normalize_returns).to(self.device)
+
         self._agents = [agent]
         critic = QDCritic(self.obs_shape, measure_dim=cfg.num_dims).to(self.device)
         self.qd_critic = critic
 
-        if (self.cfg.env_type == 'envpool'):
+        if self.cfg.env_type == 'envpool':
             self.vec_inference = self._agents[0]
         else:
             self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
-                                             action_shape=self.action_shape, normalize_obs=cfg.normalize_obs,
-                                             normalize_returns=cfg.normalize_returns, env_type=cfg.env_type).to(self.device)
+                                                 action_shape=self.action_shape, normalize_obs=cfg.normalize_obs,
+                                                 normalize_returns=cfg.normalize_returns).to(self.device)
 
         self.vec_optimizer = torch.optim.Adam(self.vec_inference.parameters(), lr=cfg.learning_rate, eps=1e-5)
         self.qd_critic_optim = torch.optim.Adam(self.qd_critic.parameters(), lr=cfg.learning_rate, eps=1e-5)
@@ -140,7 +147,9 @@ class PPO:
         if (self.cfg.env_type == 'envpool'):
             self.vec_inference = self._agents[0]
         else:
-            self.vec_inference = VectorizedActor(self._agents, Actor, self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns, env_type=self.cfg.env_type)
+            self.vec_inference = VectorizedActor(self._agents, Actor, self.obs_shape, self.action_shape,
+                                                 self.cfg.normalize_obs, self.cfg.normalize_returns,
+                                                 env_type=self.cfg.env_type)
         self.vec_optimizer = torch.optim.Adam(self.vec_inference.parameters(), lr=self.cfg.learning_rate, eps=1e-5)
 
     @property
@@ -176,7 +185,8 @@ class PPO:
         self.qd_critic_optim = torch.optim.Adam(self.qd_critic.parameters(), lr=self.cfg.learning_rate, eps=1e-5)
 
     # noinspection NonAsciiCharacters
-    def calculate_rewards(self, next_obs, next_done, rewards, values, dones, rollout_length, calculate_dqd_gradients=False,
+    def calculate_rewards(self, next_obs, next_done, rewards, values, dones, rollout_length,
+                          calculate_dqd_gradients=False,
                           move_mean_agent=False, env_type="brax"):
         # bootstrap value if not done
         with torch.no_grad():
@@ -187,7 +197,8 @@ class PPO:
                     val = self.qd_critic.get_value_at(obs, dim=i)
                     if self.cfg.normalize_returns:
                         # need to denormalize the values
-                        mean, var = self.vec_inference.rew_normalizers[i].return_rms.mean, self.vec_inference.rew_normalizers[i].return_rms.var
+                        mean, var = self.vec_inference.rew_normalizers[i].return_rms.mean, \
+                        self.vec_inference.rew_normalizers[i].return_rms.var
                         val = (torch.clamp(val, -5.0, 5.0) * torch.sqrt(var.to(self.device))) + mean.to(self.device)
 
                     next_value.append(val)
@@ -199,13 +210,15 @@ class PPO:
                 else:
                     # standard ppo
                     if (env_type == 'envpool'):
-                            # print("CALC REWARD ENVPOOL")
-                            next_obs = torch.reshape(next_obs, (-1, next_obs.shape[1] * next_obs.shape[2] * next_obs.shape[3]))
+                        # print("CALC REWARD ENVPOOL")
+                        next_obs = torch.reshape(next_obs,
+                                                 (-1, next_obs.shape[1] * next_obs.shape[2] * next_obs.shape[3]))
                     next_value = self.qd_critic.get_value(next_obs).reshape(1, -1).to(self.device)
 
                 if self.cfg.normalize_returns:
                     #  need to de-normalize values
-                    mean, var = self.vec_inference.rew_normalizers[0].return_rms.mean, self.vec_inference.rew_normalizers[0].return_rms.var
+                    mean, var = self.vec_inference.rew_normalizers[0].return_rms.mean, \
+                    self.vec_inference.rew_normalizers[0].return_rms.var
                     next_value = (torch.clamp(next_value, -5.0, 5.0) * torch.sqrt(var)) + mean
                     values = (torch.clamp(values, -5.0, 5.0) * torch.sqrt(var)) + mean
 
@@ -232,7 +245,7 @@ class PPO:
             # print("self.cfg.num_minibatches = ", self.cfg.num_minibatches)
             # print("minibatch_size = ", minibatch_size)
 
-            if (self.cfg.env_type == 'envpool') :
+            if (self.cfg.env_type == 'envpool'):
                 obs_dim, action_dim = self.obs_shape[0], self.action_shape
             else:
                 obs_dim, action_dim = self.obs_shape[0], self.action_shape[0]
@@ -249,10 +262,12 @@ class PPO:
 
                 if (self.cfg.env_type != 'envpool'):
                     _, newlogprob, entropy = self.vec_inference.get_action(b_obs[:, mb_inds].reshape(-1, obs_dim),
-                                                                        b_actions[:, mb_inds].reshape(-1, action_dim))
+                                                                           b_actions[:, mb_inds].reshape(-1,
+                                                                                                         action_dim))
                 else:
-                    _, newlogprob, entropy = self.vec_inference.get_action(torch.squeeze(b_obs[:, mb_inds]), b_actions[:, mb_inds])
-                
+                    _, newlogprob, entropy = self.vec_inference.get_action(torch.squeeze(b_obs[:, mb_inds]),
+                                                                           b_actions[:, mb_inds])
+
                 if calculate_dqd_gradients:
                     newvalue = []
                     for i in range(self.cfg.num_dims + 1):
@@ -265,7 +280,8 @@ class PPO:
                     if (self.cfg.env_type == 'envpool'):
                         obs_temp = b_obs[:, mb_inds]
                         # print('obs temp before shape = ', obs_temp.shape)
-                        obs_temp = torch.reshape(obs_temp, (-1, obs_temp.shape[2] * obs_temp.shape[3] * obs_temp.shape[4]))
+                        obs_temp = torch.reshape(obs_temp,
+                                                 (-1, obs_temp.shape[2] * obs_temp.shape[3] * obs_temp.shape[4]))
                         newvalue = self.qd_critic.get_value(obs_temp)
                     else:
                         newvalue = self.qd_critic.get_value(b_obs[:, mb_inds].reshape(-1, obs_dim))
@@ -357,11 +373,14 @@ class PPO:
             # create copy of agent for f and one of each m
             agent_original_params = [copy.deepcopy(solution_params) for _ in range(self.cfg.num_dims + 1)]
             if (self.cfg.env_type == 'envpool'):
-                agents = [DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(params) for params in
-                      agent_original_params]
+                agents = [
+                    DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs,
+                                  self.cfg.normalize_returns).deserialize(params) for params in
+                    agent_original_params]
             else:
-                agents = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(params) for params in
-                      agent_original_params]
+                agents = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs,
+                                self.cfg.normalize_returns).deserialize(params) for params in
+                          agent_original_params]
             self.agents = agents
 
         num_agents = len(self._agents)
@@ -404,7 +423,8 @@ class PPO:
                         # print("update self.next_obs.dtype", self.next_obs.dtype)
                         # print("get value self.next_obs.shape = ", self.next_obs.shape)
                         if (self.cfg.env_type == 'envpool'):
-                            self.next_obs = torch.reshape(self.next_obs, (-1, self.next_obs.shape[1] * self.next_obs.shape[2] * self.next_obs.shape[3]))
+                            self.next_obs = torch.reshape(self.next_obs, (
+                            -1, self.next_obs.shape[1] * self.next_obs.shape[2] * self.next_obs.shape[3]))
                         value = self.qd_critic.get_value(self.next_obs)
 
                     # print("self.actions = ", self.actions.shape)
@@ -441,7 +461,7 @@ class PPO:
                         rew_measures *= self._grad_coeffs
                         reward = rew_measures.sum(dim=1)
                     if (self.cfg.env_type == 'envpool'):
-                        reward = torch.from_numpy(reward) 
+                        reward = torch.from_numpy(reward)
                     reward = reward.cpu()
                     self.total_rewards += reward
                     self.ep_len += 1
@@ -471,11 +491,13 @@ class PPO:
                     rew_measures = (rew_measures * mask).sum(dim=2)
                     advantages, returns = self.calculate_rewards(self.next_obs, dones, rew_measures,
                                                                  self.values, self.dones,
-                                                                 rollout_length=rollout_length, calculate_dqd_gradients=True)
+                                                                 rollout_length=rollout_length,
+                                                                 calculate_dqd_gradients=True)
                 else:
                     advantages, returns = self.calculate_rewards(self.next_obs, dones, self.rewards, self.values,
                                                                  self.dones, rollout_length=rollout_length,
-                                                                 move_mean_agent=move_mean_agent, env_type=self.cfg.env_type)
+                                                                 move_mean_agent=move_mean_agent,
+                                                                 env_type=self.cfg.env_type)
                 # normalize the returns
                 if self.cfg.normalize_returns:
                     for i, single_step_returns in enumerate(returns):
@@ -492,7 +514,11 @@ class PPO:
             # end of nograd ctx
             # update the network
             (pg_loss, v_loss, entropy_loss, old_approx_kl, approx_kl, clipfracs, ratio) = self.batch_update(b_values,
-                                                                                                            (b_obs, b_logprobs, b_actions, b_advantages, b_returns),
+                                                                                                            (b_obs,
+                                                                                                             b_logprobs,
+                                                                                                             b_actions,
+                                                                                                             b_advantages,
+                                                                                                             b_returns),
                                                                                                             calculate_dqd_gradients=calculate_dqd_gradients,
                                                                                                             move_mean_agent=move_mean_agent)
 
@@ -508,7 +534,8 @@ class PPO:
                 fps = global_step / train_elapse
                 if not calculate_dqd_gradients and not move_mean_agent:  # backwards compatibility for standard PPO
                     if update % 10 == 0:
-                        log.debug(f'Avg FPS so far: {fps:.2f}, env steps: {global_step}, train time: {train_elapse:.2f}, avg reward: {np.mean(self.episodic_returns)}')
+                        log.debug(
+                            f'Avg FPS so far: {fps:.2f}, env steps: {global_step}, train time: {train_elapse:.2f}, avg reward: {np.mean(self.episodic_returns)}')
 
                 if self.cfg.use_wandb:
                     wandb.log({
@@ -596,16 +623,21 @@ class PPO:
             jacobian = (new_params - agent_original_params).reshape(self.cfg.num_emitters, self.cfg.num_dims + 1, -1)
 
             if (self.cfg.env_type == 'envpool'):
-                original_agent = [DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
-                                    self.device)]
+                original_agent = [
+                    DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs,
+                                  self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
+                        self.device)]
             else:
-                original_agent = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
-                                    self.device)]
+                original_agent = [Actor(self.obs_shape, self.action_shape, self.cfg.normalize_obs,
+                                        self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
+                    self.device)]
 
             if (self.cfg.env_type == 'envpool'):
                 self.vec_inference = original_agent[0]
             else:
-                self.vec_inference = VectorizedActor(original_agent, Actor, self.obs_shape, self.action_shape, self.cfg.normalize_obs, self.cfg.normalize_returns, env_type=self.cfg.env_type)
+                self.vec_inference = VectorizedActor(original_agent, Actor, self.obs_shape, self.action_shape,
+                                                     self.cfg.normalize_obs, self.cfg.normalize_returns,
+                                                     env_type=self.cfg.env_type)
             f, m, metadata = self.evaluate(self.vec_inference,
                                            vec_env=vec_env,
                                            obs_normalizer=original_obs_normalizer,
@@ -628,10 +660,10 @@ class PPO:
 
         # ALGO Logic: Storage setup
         eval_obs = torch.zeros(
-        (eval_num_steps, vec_env.num_envs) + vec_env.single_observation_space.shape
+            (eval_num_steps, vec_env.num_envs) + vec_env.single_observation_space.shape
         ).to(self.device)
         eval_actions = torch.zeros(
-        (eval_num_steps, vec_env.num_envs) + self.cfg.action_shape
+            (eval_num_steps, vec_env.num_envs) + self.cfg.action_shape
         ).to(self.device)
         eval_logprobs = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
         eval_rewards = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
@@ -649,16 +681,16 @@ class PPO:
             eval_obs[step] = eval_next_obs
             eval_dones[step] = eval_next_done
 
-
             # ALGO LOGIC: action logic
             with torch.no_grad():
                 # eval_action, eval_logprob, _, eval_value = agent.get_action_and_value(eval_next_obs)
                 eval_action, eval_logprob, _ = self.vec_inference.get_action(eval_next_obs)
                 if (self.cfg.env_type == 'envpool'):
                     # print("CALC REWARD ENVPOOL")
-                    eval_next_obs = torch.reshape(eval_next_obs, (-1, eval_next_obs.shape[1] * eval_next_obs.shape[2] * eval_next_obs.shape[3]))
+                    eval_next_obs = torch.reshape(eval_next_obs, (
+                    -1, eval_next_obs.shape[1] * eval_next_obs.shape[2] * eval_next_obs.shape[3]))
                 eval_value = self.qd_critic.get_value(eval_next_obs).reshape(1, -1).to(self.device)
-                
+
                 # eval_value = self.qd_critic.get_value(eval_next_obs)
                 eval_values[step] = eval_value.flatten()
             # print("vec_env.single_action_space.shape = ", self.cfg.action_shape)
@@ -670,7 +702,8 @@ class PPO:
             # TRY NOT TO MODIFY: execute the game and log data.
             eval_next_obs, eval_reward, eval_done, eval_info = vec_env.step(eval_action.cpu().numpy())
             eval_rewards[step] = torch.tensor(eval_reward).to(self.device).view(-1)
-            eval_next_obs, eval_next_done = torch.Tensor(eval_next_obs).to(self.device), torch.Tensor(eval_done).to(self.device)
+            eval_next_obs, eval_next_done = torch.Tensor(eval_next_obs).to(self.device), torch.Tensor(eval_done).to(
+                self.device)
 
             # save images
             ids = np.asarray(eval_info["env_id"])
@@ -680,12 +713,14 @@ class PPO:
             if cv2 is not None:
                 eval_obs_all = np.zeros((84, 84 * vec_env.num_envs, 3), np.uint8)
                 for i, j in enumerate(ids):
-                    eval_obs_all[:, 84 * j:84 * (j+1)] = eval_next_obs[i, 1:].cpu().permute(1, 2, 0)
+                    eval_obs_all[:, 84 * j:84 * (j + 1)] = eval_next_obs[i, 1:].cpu().permute(1, 2, 0)
                     img_list.append(eval_obs_all)
                     for env_num in range(vec_env.num_envs):
                         eval_obs_env = eval_obs_all[:, 84 * env_num:84 * (env_num + 1)]
                         img_dict[env_num].append(eval_obs_env)
-                        if not cv2.imwrite(f"{eval_img_path}/env_{env_num}_step_{str(step).zfill(eval_zfill_length)}.png", eval_obs_env):
+                        if not cv2.imwrite(
+                                f"{eval_img_path}/env_{env_num}_step_{str(step).zfill(eval_zfill_length)}.png",
+                                eval_obs_env):
                             print(f"image write failed step {step}")
                 if not cv2.imwrite(f"{eval_img_path}/step_{str(step).zfill(eval_zfill_length)}.png", eval_obs_all):
                     print(f"image write failed step {step}")
@@ -695,7 +730,6 @@ class PPO:
         for env_num in range(vec_env.num_envs):
             images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall", env_num)
         print("finished visualize")
-
 
     def evaluate(self, vec_agent, vec_env, verbose=True, obs_normalizer=None, return_normalizer=None):
         '''
@@ -741,13 +775,15 @@ class PPO:
         # TODO: figure out how to vectorize this
         for i in range(vec_env.num_envs):
             measures[i] = measures_acc[:traj_lengths[i], i].sum(dim=0) / traj_lengths[i]
-        measures = measures.reshape(vec_agent.num_models, vec_env.num_envs // vec_agent.num_models, -1).mean(dim=1).detach().cpu().numpy()
+        measures = measures.reshape(vec_agent.num_models, vec_env.num_envs // vec_agent.num_models, -1).mean(
+            dim=1).detach().cpu().numpy()
 
         total_reward = total_reward.reshape((vec_agent.num_models, vec_env.num_envs // vec_agent.num_models)).mean(
             axis=1)
-        avg_traj_lengths = traj_lengths.to(torch.float32).reshape((vec_agent.num_models, vec_env.num_envs // vec_agent.num_models)).\
+        avg_traj_lengths = traj_lengths.to(torch.float32).reshape(
+            (vec_agent.num_models, vec_env.num_envs // vec_agent.num_models)). \
             mean(dim=1).cpu().numpy()
-        metadata = np.array([{'traj_length': t} for t in avg_traj_lengths]).reshape(-1,)
+        metadata = np.array([{'traj_length': t} for t in avg_traj_lengths]).reshape(-1, )
         max_reward = np.max(total_reward)
         min_reward = np.min(total_reward)
         mean_reward = np.mean(total_reward)

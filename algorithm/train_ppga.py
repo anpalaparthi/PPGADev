@@ -100,8 +100,6 @@ def parse_args():
                              'was disabled and only the archive df checkpoint is available. However, this can affect the performance of the run. Cannot be used together with save_scheduler')
     parser.add_argument('--total_iterations', type=int, default=100,
                         help='Number of iterations to run the entire dqd-rl loop')
-    parser.add_argument('--dqd_algorithm', type=str, choices=['cma_mega_adam', 'cma_maega'],
-                        help='Which DQD algorithm should be running in the outer loop')
     parser.add_argument('--expdir', type=str, help='Experiment results directory')
     parser.add_argument('--save_heatmaps', type=lambda x: bool(strtobool(x)), default=True,
                         help='Save the archive heatmaps. Only applies to archives with <= 2 measures')
@@ -121,6 +119,7 @@ def parse_args():
                         help='Log the objective scores in every cell in the archive every log_freq iterations. Useful for pretty visualizations')
     parser.add_argument('--adaptive_stddev', type=lambda x: bool(strtobool(x)), default=True,
                         help='If False, the log stddev parameter in the actor will be reset on each QD iteration. Can potentially help exploration but may lose performance')
+    # CVT Archive params, if using CVT archive over Grid Archive
     parser.add_argument('--use_cvt_archive', type=lambda x: bool(strtobool(x)), default=False,
                         help="use CVTArchive instead of GridArchive")
     parser.add_argument('--cvt_cells', type=int, default=0,
@@ -197,14 +196,10 @@ def create_scheduler(cfg: AttrDict,
     print("bounds: ")
     print(bounds)
 
-    if cfg.dqd_algorithm == 'cma_maega':
-        threshold_min = cfg.threshold_min
+    threshold_min = cfg.threshold_min
 
     if archive_learning_rate is None:
-        if cfg.dqd_algorithm == 'cma_maega':
-            archive_learning_rate = cfg.archive_lr
-        else:
-            archive_learning_rate = 1.0
+        archive_learning_rate = cfg.archive_lr
 
     archive, result_archive = None, None
     if cfg.load_archive_from_cp is not None and cfg.load_scheduler_from_cp is None:
@@ -311,43 +306,27 @@ def create_scheduler(cfg: AttrDict,
     emitter_seeds = [None] * num_emitters if cfg.seed is None else np.arange(
         cfg.seed, cfg.seed + num_emitters)
 
-    if cfg.dqd_algorithm == 'cma_mega_adam':
-        # Note that only one emitter is used for cma_mega_adam. This is to be
-        # consistent with Fontaine 2021 <https://arxiv.org/abs/2106.03894>.
-        emitters = [
-            PPGAEmitter(
-                ppo,
-                archive,
-                initial_sol,
-                sigma0=cfg.sigma0,
-                batch_size=batch_size,
-                seed=emitter_seeds[0],
-                use_wandb=cfg.use_wandb,
-                normalize_obs=cfg.normalize_obs,
-                normalize_returns=cfg.normalize_returns,
-            )
-        ]
-    else:
-        # cma_maega
-        emitters = [
-            PPGAEmitter(
-                ppo,
-                archive,
-                initial_sol,
-                sigma0=cfg.sigma0,
-                batch_size=batch_size,
-                ranker='imp',
-                restart_rule=cfg.restart_rule,
-                bounds=None,
-                seed=emitter_seeds[0],
-                use_wandb=cfg.use_wandb,
-                normalize_obs=cfg.normalize_obs,
-                normalize_returns=cfg.normalize_returns,
-            )
-        ]
+    # Note that only one emitter is used for cma_mega_adam. This is to be
+    # consistent with Fontaine 2021 <https://arxiv.org/abs/2106.03894>.
+    emitters = [
+        PPGAEmitter(
+            ppo,
+            archive,
+            initial_sol,
+            sigma0=cfg.sigma0,
+            batch_size=batch_size,
+            ranker='imp',
+            restart_rule=cfg.restart_rule,
+            bounds=None,
+            seed=emitter_seeds[0],
+            use_wandb=cfg.use_wandb,
+            normalize_obs=cfg.normalize_obs,
+            normalize_returns=cfg.normalize_returns,
+        )
+    ]
 
     log.debug(
-        f"Created Scheduler for {cfg.dqd_algorithm} with an archive learning rate of {archive_learning_rate}, "
+        f"Created Scheduler with an archive learning rate of {archive_learning_rate}, "
         f"and add mode {mode}, using solution dim {solution_dim} and archive "
         f"dims {archive_dims}. Min threshold is {threshold_min}. Restart rule is {cfg.restart_rule}")
 
@@ -383,7 +362,7 @@ def train_ppga(cfg: AttrDict, vec_env):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    use_result_archive = cfg.dqd_algorithm == 'cma_maega'
+    use_result_archive = True
 
     if cfg.load_scheduler_from_cp:
         log.info("Loading an existing scheduler!")

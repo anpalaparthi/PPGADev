@@ -92,8 +92,7 @@ class RecordEpisodeStatistics(gym.Wrapper):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env_name', type=str, help="Choose from [QDAntBulletEnv-v0,"
-                                                     "QDHalfCheetahBulletEnv-v0]")
+    parser.add_argument('--env_name', type=str)
     parser.add_argument('--seed', type=int, default=1111)
     parser.add_argument("--torch_deterministic", type=lambda x: bool(strtobool(x)), default=False, nargs="?", const=True,
                         help="if toggled, `torch.backends.cudnn.deterministic=False`")
