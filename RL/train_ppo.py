@@ -9,9 +9,11 @@ from RL.ppo import PPO
 
 from models.actor_critic import Actor
 from ribs.archives import CVTArchive, GridArchive
+from envs.gym_atari.atari_env import make_vec_env as make_vec_env_gym
+from envs.envpool.envpool_env import make_env as make_envpool_env
 
 # envpool imports
-import gym
+import gymnasium as gym
 import envpool
 import numpy as np
 from packaging import version
@@ -105,7 +107,7 @@ def parse_args():
 
     # algorithm args
     parser.add_argument('--total_timesteps', type=int, default=1000000)
-    parser.add_argument('--env_type', type=str, choices=['brax', 'isaac', 'envpool'], help='Whether to use cpu-envs or gpu-envs for rollouts')
+    parser.add_argument('--env_type', type=str, choices=['brax', 'isaac', 'envpool', 'gym'], help='Whether to use cpu-envs or gpu-envs for rollouts')
     # args for brax
     parser.add_argument('--env_batch_size', default=1, type=int, help='Number of parallel environments to run')
 
@@ -152,8 +154,6 @@ def parse_args():
                         help="use the wrapper with only forward reward and control cost part of measures")
     parser.add_argument('--clip_obs_rew', type=lambda x: bool(strtobool(x)), default=False, help='Clip obs and rewards b/w -10 and 10')
 
-    parser.add_argument('--gym-id', type=str, default='Pong-v5', help='the id of the gym environment') # gym argument for envpool
-    
     args = parser.parse_args()
     cfg = AttrDict(vars(args))
     return cfg
@@ -169,17 +169,18 @@ if __name__ == '__main__':
     if cfg.env_type == 'brax':
         from envs.brax_custom.brax_env import make_vec_env_brax
         vec_env = make_vec_env_brax(cfg)
-        print("BRAX BRAX")
-    elif cfg.env_type == 'envpool': # add support for envpool environments
+    elif cfg.env_type == 'envpool':  # add support for envpool environments
         print("ENV ENV POOL POOL")
         # num_envs_envpool = 8
-        vec_env = envpool.make(cfg.gym_id, env_type="gym", num_envs=int(cfg.env_batch_size), episodic_life=True, reward_clip=True)
+        vec_env = make_envpool_env(cfg)
         vec_env.num_envs = int(cfg.env_batch_size)
         vec_env.single_action_space = vec_env.action_space
         print(f"action space orig: {vec_env.action_space}, {vec_env.action_space.shape}")
         vec_env.single_observation_space = vec_env.observation_space
-        vec_env = RecordEpisodeStatistics(vec_env)
+        # vec_env = RecordEpisodeStatistics(vec_env)
         # TODO: maybe add record episode statistics
+    elif cfg.env_type == 'gym':
+        vec_env = make_vec_env_gym(cfg)
     else:
         print("NOT ANYTHING")
         raise NotImplementedError(f'{cfg.env_type} is undefined for "env_type"')
@@ -197,7 +198,7 @@ if __name__ == '__main__':
     cfg.minibatch_size = int(cfg.batch_size // cfg.num_minibatches)
     cfg.obs_shape = vec_env.single_observation_space.shape
     print(f"obs shape: {cfg.obs_shape}")
-    if cfg.env_type == 'envpool':
+    if cfg.env_type in ['envpool', 'gym']:
         cfg.single_action_space = vec_env.single_action_space
     # else:
     cfg.action_shape = vec_env.single_action_space.shape

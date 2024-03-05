@@ -61,7 +61,7 @@ class DiscreteActor(StochasticPolicy):
         return self.actor(self.network(x / 255.0))
 
     def get_action(self, obs, action=None):
-        hidden = self.network(obs / 255.0)
+        hidden = self.network(obs)
         logits = self.actor(hidden)
         probs = Categorical(logits=logits)
         if action is None:

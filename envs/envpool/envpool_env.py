@@ -2,7 +2,7 @@ import envpool
 import torch
 
 from attrdict import AttrDict
-from envs.wrappers.envpool_wrappers import EnvPoolTorchWrapper
+from envs.wrappers.common_wrappers import EnvPoolTorchWrapper
 
 
 def make_env(cfg: AttrDict):

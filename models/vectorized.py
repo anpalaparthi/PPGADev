@@ -51,10 +51,13 @@ class VectorizedPolicy(StochasticPolicy, ABC):
         self.obs_shape = obs_shape
         self.action_shape = action_shape
 
+        self.obs_normalizer = None
+        self.return_normalizer = None
+
         if normalize_obs:
-            self.obs_normalizers = [model.obs_normalizer for model in models]
+            self.obs_normalizers = nn.ModuleList([model.obs_normalizer for model in models])
         if normalize_returns:
-            self.rew_normalizers = [model.return_normalizer for model in models]
+            self.rew_normalizers = nn.ModuleList([model.return_normalizer for model in models])
 
     def _vectorize_layers(self, layer_name, models):
         '''
@@ -119,10 +122,10 @@ class VectorizedPolicy(StochasticPolicy, ABC):
 
     def vec_normalize_obs(self, obs):
         # TODO: make this properly vectorized
-        obs = obs.reshape(self.num_models, obs.shape[0] // self.num_models, -1)
+        obs = obs.reshape(self.num_models, obs.shape[0] // self.num_models, *obs.shape[1:])
         for i, (model_obs, normalizer) in enumerate(zip(obs, self.obs_normalizers)):
             obs[i] = normalizer(model_obs)
-        return obs.reshape(-1, obs.shape[-1])
+        return obs.reshape(obs.shape[0] * obs.shape[1], *obs.shape[2:])
 
     def vec_normalize_returns(self, rewards):
         # TODO: make this properly vectorized
@@ -191,25 +194,41 @@ class VectorizedDiscreteVisualActor(VectorizedPolicy):
         # vectorized mlp "policy heads"
         self.blocks = self._vectorize_layers('actor_mean', models)
         self.actor_mean = nn.Sequential(*self.blocks)
-        action_logprobs = [model.actor_logstd for model in models]
-        action_logprobs = torch.cat(action_logprobs).to(self.device)
-        self.actor_logstd = nn.Parameter(action_logprobs)
 
     def replace_models(self, models):
         self.blocks = self._vectorize_layers('actor_mean', models)
         self.actor_mean = nn.Sequential(*self.blocks)
-        action_logprobs = [model.actor_logstd for model in models]
-        action_logprobs = torch.cat(action_logprobs).to(self.device)
-        self.actor_logstd = nn.Parameter(action_logprobs)
 
     def forward(self, x: torch.Tensor):
         feats = self.feature_extractor(x / 255.)
         return self.actor_mean(feats)
 
     def get_action(self, obs: torch.Tensor, action: torch.Tensor = None):
-        feats = self.feature_extractor(obs / 255.)
+        feats = self.feature_extractor(obs)
         logits = self.actor_mean(feats)
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy()
+
+    def vec_to_models(self):
+        '''
+        Returns a list of models view of the object
+        '''
+        models = [self.model_fn(self.obs_shape, self.action_shape, self.normalize_obs, self.normalize_returns)
+                  for _ in range(self.num_models)]
+        for i, model in enumerate(models):
+            for l, layer in enumerate(self.actor_mean):
+                # layer could be a nonlinearity
+                if not isinstance(layer, VectorizedLinearBlock):
+                    continue
+                model.actor_mean[l].weight.data = layer.weight.data[i]
+                model.actor_mean[l].bias.data = layer.bias.data[i]
+
+            # update obs/rew normalizers
+            if self.normalize_obs:
+                model.obs_normalizer = self.obs_normalizers[i]
+            if self.normalize_returns:
+                model.return_normalizer = self.rew_normalizers[i]
+
+        return models
