@@ -15,7 +15,7 @@ from collections import deque
 from torch import Tensor
 
 from utils.utilities import log, save_checkpoint
-from models.vectorized import VectorizedActor, VectorizedDiscreteVisualActor
+from models.vectorized import VectorizedActor, VectorizedDiscreteVisualActorCritic
 from models.actor_critic import Actor, Critic, QDCritic, DiscreteActor
 import cv2
 from collections import deque
@@ -79,21 +79,20 @@ class PPO:
                           normalize_returns=cfg.normalize_returns).to(self.device)
 
         self._agents = [agent]
-        critic = QDCritic(self.obs_shape, measure_dim=cfg.num_dims).to(self.device)
-        self.qd_critic = critic
 
         if cfg.env_type in ['envpool', 'gym']:
-            self.vec_inference = VectorizedDiscreteVisualActor(self._agents, DiscreteActor, obs_shape=self.obs_shape,
-                                                               action_shape=self.single_action_space.n,
-                                                               normalize_obs=cfg.normalize_obs,
-                                                               normalize_returns=cfg.normalize_returns).to(self.device)
+            self.vec_inference = VectorizedDiscreteVisualActorCritic(self._agents, DiscreteActor,
+                                                                     obs_shape=self.obs_shape,
+                                                                     action_shape=self.single_action_space.n,
+                                                                     normalize_obs=cfg.normalize_obs,
+                                                                     normalize_returns=cfg.normalize_returns).to(
+                self.device)
         else:
             self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
                                                  action_shape=self.action_shape, normalize_obs=cfg.normalize_obs,
                                                  normalize_returns=cfg.normalize_returns).to(self.device)
 
         self.vec_optimizer = torch.optim.Adam(self.vec_inference.parameters(), lr=cfg.learning_rate, eps=1e-5)
-        self.qd_critic_optim = torch.optim.Adam(self.qd_critic.parameters(), lr=cfg.learning_rate, eps=1e-5)
         self._theta = None  # nn params. Used for compatibility with DQD side
 
         # critic for moving the mean solution point
@@ -148,11 +147,15 @@ class PPO:
     def agents(self, agents):
         self._agents = agents
         if self.cfg.env_type in ['envpool', 'gym']:
-            self.vec_inference = self._agents[0]
+            self.vec_inference = VectorizedDiscreteVisualActorCritic(self._agents, DiscreteActor,
+                                                                     obs_shape=self.obs_shape,
+                                                                     action_shape=self.single_action_space.n,
+                                                                     normalize_obs=self.cfg.normalize_obs,
+                                                                     normalize_returns=self.cfg.normalize_returns).to(
+                self.device)
         else:
             self.vec_inference = VectorizedActor(self._agents, Actor, self.obs_shape, self.action_shape,
-                                                 self.cfg.normalize_obs, self.cfg.normalize_returns,
-                                                 env_type=self.cfg.env_type)
+                                                 self.cfg.normalize_obs, self.cfg.normalize_returns)
         self.vec_optimizer = torch.optim.Adam(self.vec_inference.parameters(), lr=self.cfg.learning_rate, eps=1e-5)
 
     @property
@@ -201,7 +204,7 @@ class PPO:
                     if self.cfg.normalize_returns:
                         # need to denormalize the values
                         mean, var = self.vec_inference.rew_normalizers[i].return_rms.mean, \
-                        self.vec_inference.rew_normalizers[i].return_rms.var
+                            self.vec_inference.rew_normalizers[i].return_rms.var
                         val = (torch.clamp(val, -5.0, 5.0) * torch.sqrt(var.to(self.device))) + mean.to(self.device)
 
                     next_value.append(val)
@@ -212,16 +215,12 @@ class PPO:
                     next_value = self.mean_critic.get_value(next_obs).reshape(1, -1).to(self.device)
                 else:
                     # standard ppo
-                    if self.cfg.env_type in ['envpool', 'gym']:
-                        # print("CALC REWARD ENVPOOL")
-                        next_obs = torch.reshape(next_obs,
-                                                 (-1, next_obs.shape[1] * next_obs.shape[2] * next_obs.shape[3]))
-                    next_value = self.qd_critic.get_value(next_obs).reshape(1, -1).to(self.device)
+                    next_value = self.vec_inference.get_value(next_obs).reshape(1, -1).to(self.device)
 
                 if self.cfg.normalize_returns:
                     #  need to de-normalize values
                     mean, var = self.vec_inference.rew_normalizers[0].return_rms.mean, \
-                    self.vec_inference.rew_normalizers[0].return_rms.var
+                        self.vec_inference.rew_normalizers[0].return_rms.var
                     next_value = (torch.clamp(next_value, -5.0, 5.0) * torch.sqrt(var)) + mean
                     values = (torch.clamp(values, -5.0, 5.0) * torch.sqrt(var)) + mean
 
@@ -244,9 +243,6 @@ class PPO:
             (b_obs, b_logprobs, b_actions, b_advantages, b_returns) = batched_data
             batch_size = b_obs.shape[1]
             minibatch_size = batch_size // self.cfg.num_minibatches
-            # print("batch size = ", batch_size)
-            # print("self.cfg.num_minibatches = ", self.cfg.num_minibatches)
-            # print("minibatch_size = ", minibatch_size)
 
             if self.cfg.env_type in ['envpool', 'gym']:
                 obs_dim, action_dim = np.prod(self.obs_shape), self.action_shape
@@ -264,9 +260,10 @@ class PPO:
                 mb_inds = b_inds[start:end]
 
                 if self.cfg.env_type in ['envpool', 'gym']:
-                    _, newlogprob, entropy = self.vec_inference.get_action(b_obs[:, mb_inds].reshape(-1, *self.obs_shape),
-                                                                           b_actions[:, mb_inds].reshape(-1,
-                                                                                                         *action_dim))
+                    _, newlogprob, entropy = self.vec_inference.get_action(
+                        b_obs[:, mb_inds].reshape(-1, *self.obs_shape),
+                        b_actions[:, mb_inds].reshape(-1,
+                                                      *action_dim))
                 else:
                     _, newlogprob, entropy = self.vec_inference.get_action(torch.squeeze(b_obs[:, mb_inds]),
                                                                            b_actions[:, mb_inds])
@@ -281,13 +278,9 @@ class PPO:
                 else:
                     # standard ppo
                     if self.cfg.env_type in ['envpool', 'gym']:
-                        obs_temp = b_obs[:, mb_inds]
-                        # print('obs temp before shape = ', obs_temp.shape)
-                        obs_temp = torch.reshape(obs_temp,
-                                                 (-1, obs_temp.shape[2] * obs_temp.shape[3] * obs_temp.shape[4]))
-                        newvalue = self.qd_critic.get_value(obs_temp)
+                        newvalue = self.vec_inference.get_value(b_obs[0, mb_inds])
                     else:
-                        newvalue = self.qd_critic.get_value(b_obs[:, mb_inds].reshape(-1, obs_dim))
+                        newvalue = self.vec_inference.get_value(b_obs[:, mb_inds].reshape(-1, obs_dim))
 
                 logratio = newlogprob - b_logprobs[:, mb_inds].flatten()
                 ratio = logratio.exp()
@@ -328,8 +321,6 @@ class PPO:
 
                 for p in self.vec_inference.parameters():
                     p.grad = None
-                for p in self.qd_critic.parameters():
-                    p.grad = None
                 for p in self.mean_critic.parameters():
                     p.grad = None
 
@@ -339,10 +330,6 @@ class PPO:
                 if move_mean_agent:
                     nn.utils.clip_grad_norm_(self.mean_critic.parameters(), self.cfg.max_grad_norm)
                     self.mean_critic_optim.step()
-                else:
-                    # works for standard ppo or the dqd step
-                    nn.utils.clip_grad_norm_(self.qd_critic.parameters(), self.cfg.max_grad_norm)
-                    self.qd_critic_optim.step()
 
             if self.cfg.target_kl is not None:
                 if approx_kl > self.cfg.target_kl:
@@ -390,13 +377,9 @@ class PPO:
         for update in range(1, num_updates + 1):
             with torch.no_grad():
                 for step in range(rollout_length):
-                    # print("step = ", step)
                     global_step += self.num_envs
 
-                    # print("self.obs.shape = ", self.obs.shape)
-                    # print("self.obs[step].shape = ", self.obs[step].shape)
-                    # print("self.next_obs.shape = ", self.next_obs.shape)
-                    self.obs[step] = self.next_obs
+                    self.obs[step] = self.next_obs.clone()
                     self.next_obs = self.next_obs.to(self.device)
 
                     action, logprob, _ = self.vec_inference.get_action(self.next_obs)
@@ -412,10 +395,7 @@ class PPO:
                         value = self.mean_critic.get_value(self.next_obs)
                     else:
                         # standard ppo. Maintains backwards compatibility
-                        if self.cfg.env_type in ['envpool', 'gym']:
-                            self.next_obs = torch.reshape(self.next_obs, (
-                            -1, self.next_obs.shape[1] * self.next_obs.shape[2] * self.next_obs.shape[3]))
-                        value = self.qd_critic.get_value(self.next_obs)
+                        value = self.vec_inference.get_value(self.next_obs)
 
                     self.values[step] = value.flatten()
                     self.actions[step] = action
@@ -599,7 +579,7 @@ class PPO:
             #                     trained_models[i],
             #                     self.vec_optimizer)
             save_checkpoint('checkpoints', f'{self.cfg.env_name}_{self.cfg.env_type}_policy_checkpoint.pt',
-                                 self.vec_inference, self.vec_optimizer)
+                            self.vec_inference, self.vec_optimizer)
             log.debug("Done!")
         elif calculate_dqd_gradients:
             trained_agents = self.vec_inference.vec_to_models()

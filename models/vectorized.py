@@ -170,7 +170,7 @@ class VectorizedActor(VectorizedPolicy):
         return action, probs.log_prob(action).sum(1), probs.entropy()
 
 
-class VectorizedDiscreteVisualActor(VectorizedPolicy):
+class VectorizedDiscreteVisualActorCritic(VectorizedPolicy):
     def __init__(self, models, model_fn, obs_shape, action_shape, normalize_obs=False, normalize_returns=False):
         '''
         Vectorized policy class for visual observations and discrete action spaces (i.e. Atari)
@@ -194,13 +194,14 @@ class VectorizedDiscreteVisualActor(VectorizedPolicy):
         # vectorized mlp "policy heads"
         self.blocks = self._vectorize_layers('actor_mean', models)
         self.actor_mean = nn.Sequential(*self.blocks)
+        self.critic = layer_init(nn.Linear(512, 1), std=1)
 
     def replace_models(self, models):
         self.blocks = self._vectorize_layers('actor_mean', models)
         self.actor_mean = nn.Sequential(*self.blocks)
 
     def forward(self, x: torch.Tensor):
-        feats = self.feature_extractor(x / 255.)
+        feats = self.feature_extractor(x)
         return self.actor_mean(feats)
 
     def get_action(self, obs: torch.Tensor, action: torch.Tensor = None):
@@ -210,6 +211,10 @@ class VectorizedDiscreteVisualActor(VectorizedPolicy):
         if action is None:
             action = probs.sample()
         return action, probs.log_prob(action), probs.entropy()
+
+    def get_value(self, obs: torch.Tensor):
+        feats = self.feature_extractor(obs)
+        return self.critic(feats)
 
     def vec_to_models(self):
         '''

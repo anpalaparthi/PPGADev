@@ -169,9 +169,7 @@ if __name__ == '__main__':
     if cfg.env_type == 'brax':
         from envs.brax_custom.brax_env import make_vec_env_brax
         vec_env = make_vec_env_brax(cfg)
-    elif cfg.env_type == 'envpool':  # add support for envpool environments
-        print("ENV ENV POOL POOL")
-        # num_envs_envpool = 8
+    elif cfg.env_type == 'envpool':
         vec_env = make_envpool_env(cfg)
         vec_env.num_envs = int(cfg.env_batch_size)
         vec_env.single_action_space = vec_env.action_space

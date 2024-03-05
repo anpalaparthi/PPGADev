@@ -49,12 +49,15 @@ class DiscreteActor(StochasticPolicy):
                  normalize_obs: bool = False,
                  normalize_returns: bool = False):
         StochasticPolicy.__init__(self, normalize_obs=normalize_obs, obs_shape=obs_shape, normalize_returns=normalize_returns)
+        # self.actor_mean = nn.Sequential(
+        #     layer_init(nn.Linear(512, 256)),
+        #     nn.ReLU(),
+        #     layer_init(nn.Linear(256, 128)),
+        #     nn.ReLU(),
+        #     layer_init(nn.Linear(128, action_dim))
+        # )
         self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(512, 256)),
-            nn.ReLU(),
-            layer_init(nn.Linear(256, 128)),
-            nn.ReLU(),
-            layer_init(nn.Linear(128, action_dim))
+            layer_init(nn.Linear(512, action_dim), std=0.01)
         )
 
     def forward(self, x):

@@ -40,7 +40,7 @@ class EnvPoolTorchWrapper(g.Wrapper):
     def reset(self):
         obs, info = self.env.reset()
         obs = torch.from_numpy(np.array(obs)).to(self.device).to(torch.float32)
-        return obs, info
+        return obs , info
 
 
 class VecResizeObservation(gym.ObservationWrapper):
