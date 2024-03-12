@@ -61,7 +61,7 @@ class DiscreteActor(StochasticPolicy):
         )
 
     def forward(self, x):
-        return self.actor(self.network(x / 255.0))
+        return self.actor(self.network(x))
 
     def get_action(self, obs, action=None):
         hidden = self.network(obs)

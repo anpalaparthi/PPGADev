@@ -437,7 +437,10 @@ class PPO:
                         if dones.any():
                             dones_bool = dones.bool()
                             dones_cpu = dones_bool.cpu()
-                            self.episodic_returns.extend(self.total_rewards[dones_cpu].tolist())
+                            final_info_inds = np.nonzero(infos['final_info'])[0]
+                            total_rewards = [infos['final_info'][i]['episode']['r'][0] if 'episode' in infos['final_info'][i] else None for i in final_info_inds]
+                            total_rewards = list(filter(lambda item: item is not None, total_rewards))
+                            self.episodic_returns.extend(total_rewards)
                             self.episodic_lengths.extend(self.ep_len[dones_cpu].tolist())
                             self.total_rewards[dones_bool] = 0
                             self.ep_len[dones_bool] = 0
