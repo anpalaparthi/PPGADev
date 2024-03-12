@@ -70,6 +70,7 @@ def config_wandb(**kwargs):
 
 def save_checkpoint(cp_dir, cp_name, model, optimizer, **kwargs):
     os.makedirs(cp_dir, exist_ok=True)
+    cp_name = cp_name.split('/')[-1]
     params = {}
     params['model_state_dict'] = model.state_dict()
     params['optim_state_dict'] = optimizer.state_dict()
