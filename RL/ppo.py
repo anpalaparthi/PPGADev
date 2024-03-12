@@ -614,8 +614,8 @@ class PPO:
                 m.reshape(self.vec_inference.num_models, -1), \
                 jacobian, \
                 metadata
-
-        self.visualize(vec_env)
+	
+        # self.visualize(vec_env)
 
     def visualize(self, vec_env):
         print("**************************EVALUATE AND VISUALIZE***************************")
