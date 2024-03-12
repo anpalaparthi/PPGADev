@@ -7,41 +7,22 @@ from abc import ABC, abstractmethod
 from typing import List
 from utils.normalize import ReturnNormalizer, ObsNormalizer
 from torch.amp import autocast
-
 from torch.distributions.categorical import Categorical
+from utils.utilities import layer_init
 
 
 class VectorizedLinearBlock(nn.Module):
-    def __init__(self, weights: torch.Tensor, biases=None, device=None, dtype=None, env_type="brax") -> None:
+    def __init__(self, weights: torch.Tensor, biases=None, device=None, dtype=None) -> None:
         factory_kwargs = {'device': device, 'dtype': dtype}
         super().__init__()
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.weight = nn.Parameter(weights).to(self.device)  # one slice of all the mlps we want to process as a batch
         self.bias = nn.Parameter(biases).to(self.device) if biases is not None else None
-        self.env_type = env_type
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         obs_per_weight = x.shape[0] // self.weight.shape[0]
-        #print("x.shape")
-        #print(x.shape)
-        #print("self.weight")
-        #print(self.weight.shape)
-        #print("obs per weight")
-        #print(obs_per_weight)
-        # print("x.shape = ", x.shape)
-        # print("len(x.shape) = ", len(x.shape))
-        # print("x.shape[0] = ", x.shape[0])
-        # print("x.shape[1] = ", x.shape[1])
-        # print("weight.shape = ", self.weight.shape)
-        if ((self.env_type == "envpool") and (len(x.shape) == 4)):
-            x = torch.reshape(x, (1, -1, x.shape[1] * x.shape[2] * x.shape[3]))
-        elif ((self.env_type == "envpool") and (len(x.shape) == 5)):
-            x = torch.reshape(x, (1, -1, x.shape[2] * x.shape[3] * x.shape[4]))
-        else:
-            x = torch.reshape(x, (-1, obs_per_weight, x.shape[1]))
+        x = torch.reshape(x, (-1, obs_per_weight, x.shape[1]))
         w_t = torch.transpose(self.weight, 1, 2).to(self.device)
-        # print("after reshape x.shape = ", x.shape)
-        # print("after reshape wt.shape = ", w_t.shape)
         with autocast(device_type=self.device.type):
             y = torch.bmm(x, w_t)
         if self.bias is not None:
@@ -70,12 +51,15 @@ class VectorizedPolicy(StochasticPolicy, ABC):
         self.obs_shape = obs_shape
         self.action_shape = action_shape
 
-        if normalize_obs:
-            self.obs_normalizers = [model.obs_normalizer for model in models]
-        if normalize_returns:
-            self.rew_normalizers = [model.return_normalizer for model in models]
+        self.obs_normalizer = None
+        self.return_normalizer = None
 
-    def _vectorize_layers(self, layer_name, models, env_type="brax"):
+        if normalize_obs:
+            self.obs_normalizers = nn.ModuleList([model.obs_normalizer for model in models])
+        if normalize_returns:
+            self.rew_normalizers = nn.ModuleList([model.return_normalizer for model in models])
+
+    def _vectorize_layers(self, layer_name, models):
         '''
         Vectorize a specific nn.Sequential list of layers across all models of homogenous architecture
         :param layer_name: name of a nn.Sequential block
@@ -84,12 +68,6 @@ class VectorizedPolicy(StochasticPolicy, ABC):
         assert hasattr(models[0], layer_name), f'{layer_name=} not in the model'
         all_models_layers = [getattr(models[i], layer_name) for i in range(self.num_models)]
         num_layers = len(getattr(models[0], layer_name))
-        # print("num layers")
-        # print(num_layers)
-        # print("num models")
-        # print(self.num_models)
-        # print("all_models_layers")
-        # print(all_models_layers)
         blocks = []
         for i in range(0, num_layers):
             if not isinstance(all_models_layers[0][i], nn.Linear):
@@ -99,13 +77,12 @@ class VectorizedPolicy(StochasticPolicy, ABC):
 
             # print("weights slice shape before")
             # print(len(weights_slice))
-            # print(weights_slice[0].shape)
             weights_slice = torch.stack(weights_slice)
             # print("weights slice shape after")
             # print(weights_slice.shape)
             bias_slice = torch.stack(bias_slice)
             nonlinear = all_models_layers[0][i + 1] if i + 1 < num_layers else None
-            block = VectorizedLinearBlock(weights_slice, bias_slice, env_type=env_type)
+            block = VectorizedLinearBlock(weights_slice, bias_slice)
             blocks.append(block)
             if nonlinear is not None:
                 blocks.append(nonlinear)
@@ -143,20 +120,12 @@ class VectorizedPolicy(StochasticPolicy, ABC):
     def get_action(self, obs, action=None):
         pass
 
-    # default env_type = not 'envpool'
-    def vec_normalize_obs(self, obs, env_type="brax"):
+    def vec_normalize_obs(self, obs):
         # TODO: make this properly vectorized
-        # print("vec normalize obs.shape = ", obs.shape)
-        if (env_type != 'envpool'):
-            obs = obs.reshape(self.num_models, obs.shape[0] // self.num_models, -1)
-        # print("vec normalize obs.reshape = ", obs.shape)
+        obs = obs.reshape(self.num_models, obs.shape[0] // self.num_models, *obs.shape[1:])
         for i, (model_obs, normalizer) in enumerate(zip(obs, self.obs_normalizers)):
             obs[i] = normalizer(model_obs)
-        
-        if (env_type != 'envpool'):
-            return obs.reshape(-1, obs.shape[-1])
-        else:
-            return obs
+        return obs.reshape(obs.shape[0] * obs.shape[1], *obs.shape[2:])
 
     def vec_normalize_returns(self, rewards):
         # TODO: make this properly vectorized
@@ -169,41 +138,102 @@ class VectorizedPolicy(StochasticPolicy, ABC):
 
 
 class VectorizedActor(VectorizedPolicy):
-    def __init__(self, models, model_fn, obs_shape, action_shape, normalize_obs=False, normalize_returns=False, env_type="brax"):
+    def __init__(self, models, model_fn, obs_shape, action_shape, normalize_obs=False, normalize_returns=False):
         VectorizedPolicy.__init__(self, models, model_fn, obs_shape, action_shape, normalize_obs=normalize_obs, normalize_returns=normalize_returns)
-        self.blocks = self._vectorize_layers('actor_mean', models, env_type=env_type)
+        self.blocks = self._vectorize_layers('actor_mean', models)
         self.actor_mean = nn.Sequential(*self.blocks)
-        if (env_type != 'envpool'):
-            action_logprobs = [model.actor_logstd for model in models]
-            action_logprobs = torch.cat(action_logprobs).to(self.device)
-            self.actor_logstd = nn.Parameter(action_logprobs)
-        self.env_type = env_type
+        action_logprobs = [model.actor_logstd for model in models]
+        action_logprobs = torch.cat(action_logprobs).to(self.device)
+        self.actor_logstd = nn.Parameter(action_logprobs)
 
     @autocast(device_type='cuda')
     def forward(self, x):
         return self.actor_mean(x)
 
+    def replace_models(self, models):
+        self.blocks = self._vectorize_layers('actor_mean', models)
+        self.actor_mean = nn.Sequential(*self.blocks)
+        action_logprobs = [model.actor_logstd for model in models]
+        action_logprobs = torch.cat(action_logprobs).to(self.device)
+        self.actor_logstd = nn.Parameter(action_logprobs)
+
     def get_action(self, obs, action=None):
-        # print("self.actor_mean.type = ", type(self.actor_mean))
-        # print("get action obs.shape = ", obs.shape)
-        if (self.env_type == 'envpool'):
-            logits = self.actor_mean(obs)
-            probs = Categorical(logits=logits)
-        else:      
-            with autocast(device_type=self.device.type):
-                action_mean = self.actor_mean(obs)
-            repeats = obs.shape[0] // self.num_models
-            action_logstd = torch.repeat_interleave(self.actor_logstd, repeats, dim=0)
-            action_logstd = action_logstd.expand_as(action_mean)
-            action_std = torch.exp(action_logstd)
-            #print("action mean: ")
-            #print(action_mean)
-            probs = torch.distributions.Normal(action_mean, action_std)
-        
+        with autocast(device_type=self.device.type):
+            action_mean = self.actor_mean(obs)
+        repeats = obs.shape[0] // self.num_models
+        action_logstd = torch.repeat_interleave(self.actor_logstd, repeats, dim=0)
+        action_logstd = action_logstd.expand_as(action_mean)
+        action_std = torch.exp(action_logstd)
+        probs = torch.distributions.Normal(action_mean, action_std)
         if action is None:
             action = probs.sample()
+        return action, probs.log_prob(action).sum(1), probs.entropy()
 
-        if (self.env_type == 'envpool'):
-            return action, probs.log_prob(action), probs.entropy() 
-        else:
-            return action, probs.log_prob(action).sum(1), probs.entropy()
+
+class VectorizedDiscreteVisualActorCritic(VectorizedPolicy):
+    def __init__(self, models, model_fn, obs_shape, action_shape, normalize_obs=False, normalize_returns=False):
+        '''
+        Vectorized policy class for visual observations and discrete action spaces (i.e. Atari)
+        Uses a single visual feature extractor CNN-backbone shared by all "policy heads" which are the
+        vectorized MLPs that map to actions
+        '''
+        VectorizedPolicy.__init__(self, models, model_fn, obs_shape, action_shape, normalize_obs=normalize_obs, normalize_returns=normalize_returns)
+        # core feature-extractor reused by all policies
+        self.feature_extractor = nn.Sequential(
+            layer_init(nn.Conv2d(4, 32, 8, stride=4)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+            nn.ReLU(),
+            layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+            nn.ReLU(),
+            nn.Flatten(),
+            layer_init(nn.Linear(64 * 7 * 7, 512)),
+            nn.ReLU(),
+        )
+
+        # vectorized mlp "policy heads"
+        self.blocks = self._vectorize_layers('actor_mean', models)
+        self.actor_mean = nn.Sequential(*self.blocks)
+        self.critic = layer_init(nn.Linear(512, 1), std=1)
+
+    def replace_models(self, models):
+        self.blocks = self._vectorize_layers('actor_mean', models)
+        self.actor_mean = nn.Sequential(*self.blocks)
+
+    def forward(self, x: torch.Tensor):
+        feats = self.feature_extractor(x)
+        return self.actor_mean(feats)
+
+    def get_action(self, obs: torch.Tensor, action: torch.Tensor = None):
+        feats = self.feature_extractor(obs)
+        logits = self.actor_mean(feats)
+        probs = Categorical(logits=logits)
+        if action is None:
+            action = probs.sample()
+        return action, probs.log_prob(action), probs.entropy()
+
+    def get_value(self, obs: torch.Tensor):
+        feats = self.feature_extractor(obs)
+        return self.critic(feats)
+
+    def vec_to_models(self):
+        '''
+        Returns a list of models view of the object
+        '''
+        models = [self.model_fn(self.obs_shape, self.action_shape, self.normalize_obs, self.normalize_returns)
+                  for _ in range(self.num_models)]
+        for i, model in enumerate(models):
+            for l, layer in enumerate(self.actor_mean):
+                # layer could be a nonlinearity
+                if not isinstance(layer, VectorizedLinearBlock):
+                    continue
+                model.actor_mean[l].weight.data = layer.weight.data[i]
+                model.actor_mean[l].bias.data = layer.bias.data[i]
+
+            # update obs/rew normalizers
+            if self.normalize_obs:
+                model.obs_normalizer = self.obs_normalizers[i]
+            if self.normalize_returns:
+                model.return_normalizer = self.rew_normalizers[i]
+
+        return models

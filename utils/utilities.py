@@ -70,6 +70,7 @@ def config_wandb(**kwargs):
 
 def save_checkpoint(cp_dir, cp_name, model, optimizer, **kwargs):
     os.makedirs(cp_dir, exist_ok=True)
+    cp_name = cp_name.split('/')[-1]
     params = {}
     params['model_state_dict'] = model.state_dict()
     params['optim_state_dict'] = optimizer.state_dict()
@@ -126,5 +127,10 @@ class DataPostProcessor(Axes):
         Axes.fill_between(self, x, y1, y2, where=where, interpolate=interpolate,
                           step=step, **kwargs)
 
+
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+    return layer
 
 

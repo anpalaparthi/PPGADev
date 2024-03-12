@@ -1,0 +1,8 @@
+.idea/
+*__pycache__*
+__pycache__
+wandb/*
+checkpoints/
+log.txt
+*.mp4
+wandb/
