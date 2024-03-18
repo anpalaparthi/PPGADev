@@ -16,11 +16,14 @@ class TorchWrapper(gym.vector.VectorEnvWrapper):
         obs, reward, done, trunc, info = self.env.step(action)
         obs = torch.from_numpy(obs).to(self.device).to(torch.float32)
         reward = torch.from_numpy(reward).to(self.device)
+        done = torch.from_numpy(done).to(self.device)
         trunc = torch.from_numpy(trunc).to(self.device)
+        info['measures'] = torch.from_numpy(info['measures']).float().to(self.device).view(-1, 1)
         return obs, reward, done, trunc, info
 
     def reset(self, seed=None, options=None):
         obs, info = self.env.reset(seed=seed, options=options)
+        info['measures'] = torch.from_numpy(info['measures']).float().to(self.device).view(-1, 1)
         obs = torch.from_numpy(np.array(obs)).to(self.device).to(torch.float32)
         return obs, info
 

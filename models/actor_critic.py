@@ -57,7 +57,7 @@ class DiscreteActor(StochasticPolicy):
         #     layer_init(nn.Linear(128, action_dim))
         # )
         self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(512, action_dim), std=0.01)
+            layer_init(nn.Linear(512, np.prod(action_dim)), std=0.01)
         )
 
     def forward(self, x):
@@ -186,7 +186,7 @@ class Critic(CriticBase):
         return self.get_value(obs)
 
 
-class QDCritic(CriticBase):
+class MeasureCritic(CriticBase):
     def __init__(self,
                  obs_shape: Union[int, tuple],
                  measure_dim: int,
@@ -203,9 +203,9 @@ class QDCritic(CriticBase):
             self.all_critics = nn.ModuleList([
                 nn.Sequential(
                     layer_init(nn.Linear(np.array(obs_shape).prod(), 256)),
-                    nn.Tanh(),
+                    nn.ReLU(),
                     layer_init(nn.Linear(256, 256)),
-                    nn.Tanh(),
+                    nn.ReLU(),
                     layer_init(nn.Linear(256, 1), std=1.0)
                 ) for _ in range(measure_dim + 1)
             ])

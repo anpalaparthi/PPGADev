@@ -4,7 +4,7 @@ SEED=1111
 RUN_NAME="ppo_pong_seed_"$SEED
 echo $RUN_NAME
 
-python -u -m RL.train_ppo --env_name=pong \
+python -u -m RL.train_ppo --env_name=ALE/Pong-v5 \
                           --env_type=gym \
                           --use_wandb=True\
                           --wandb_group=qdrl \

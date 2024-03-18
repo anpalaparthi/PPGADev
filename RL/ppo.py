@@ -16,7 +16,7 @@ from torch import Tensor
 
 from utils.utilities import log, save_checkpoint
 from models.vectorized import VectorizedActor, VectorizedDiscreteVisualActorCritic
-from models.actor_critic import Actor, Critic, QDCritic, DiscreteActor
+from models.actor_critic import Actor, Critic, MeasureCritic, DiscreteActor
 import cv2
 from collections import deque
 from collections import defaultdict
@@ -85,7 +85,8 @@ class PPO:
                                                                      obs_shape=self.obs_shape,
                                                                      action_shape=self.single_action_space.n,
                                                                      normalize_obs=cfg.normalize_obs,
-                                                                     normalize_returns=cfg.normalize_returns).to(
+                                                                     normalize_returns=cfg.normalize_returns,
+                                                                     measure_dim=cfg.num_dims).to(
                 self.device)
         else:
             self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
@@ -94,10 +95,6 @@ class PPO:
 
         self.vec_optimizer = torch.optim.Adam(self.vec_inference.parameters(), lr=cfg.learning_rate, eps=1e-5)
         self._theta = None  # nn params. Used for compatibility with DQD side
-
-        # critic for moving the mean solution point
-        self.mean_critic = Critic(self.obs_shape).to(self.device)
-        self.mean_critic_optim = torch.optim.Adam(self.mean_critic.parameters(), lr=cfg.learning_rate, eps=1e-5)
 
         # metrics for logging
         self.metric_last_n_window = 100
@@ -147,12 +144,7 @@ class PPO:
     def agents(self, agents):
         self._agents = agents
         if self.cfg.env_type in ['envpool', 'gym']:
-            self.vec_inference = VectorizedDiscreteVisualActorCritic(self._agents, DiscreteActor,
-                                                                     obs_shape=self.obs_shape,
-                                                                     action_shape=self.single_action_space.n,
-                                                                     normalize_obs=self.cfg.normalize_obs,
-                                                                     normalize_returns=self.cfg.normalize_returns).to(
-                self.device)
+            self.vec_inference.replace_actors(agents)
         else:
             self.vec_inference = VectorizedActor(self._agents, Actor, self.obs_shape, self.action_shape,
                                                  self.cfg.normalize_obs, self.cfg.normalize_returns)
@@ -179,8 +171,8 @@ class PPO:
     def theta(self, new_theta):
         self._theta = np.copy(new_theta)
 
-    def update_critics(self, critics_list: List[Critic]):
-        self.qd_critic = QDCritic(self.obs_shape, measure_dim=self.cfg.num_dims, critics_list=critics_list).to(
+    def update_critics(self, measure_critics: List[Critic]):
+        self.qd_critic = MeasureCritic(self.obs_shape, measure_dim=self.cfg.num_dims, critics_list=measure_critics).to(
             self.device)
         self.qd_critic_optim = torch.optim.Adam(self.qd_critic.parameters(), lr=self.cfg.learning_rate, eps=1e-5)
 
@@ -197,10 +189,10 @@ class PPO:
         # bootstrap value if not done
         with torch.no_grad():
             if calculate_dqd_gradients:
-                next_obs = next_obs.reshape(self.cfg.num_dims + 1, self.cfg.num_envs // (self.cfg.num_dims + 1), -1)
+                next_obs = next_obs.reshape(self.cfg.num_dims + 1, self.cfg.num_envs // (self.cfg.num_dims + 1), *next_obs.shape[1:])
                 next_value = []
                 for i, obs, in enumerate(next_obs):
-                    val = self.qd_critic.get_value_at(obs, dim=i)
+                    val = self.vec_inference.measure_critic_value_at(obs, dim=i)
                     if self.cfg.normalize_returns:
                         # need to denormalize the values
                         mean, var = self.vec_inference.rew_normalizers[i].return_rms.mean, \
@@ -212,7 +204,7 @@ class PPO:
 
             else:
                 if move_mean_agent:
-                    next_value = self.mean_critic.get_value(next_obs).reshape(1, -1).to(self.device)
+                    next_value = self.vec_inference.get_value_mean_critic(next_obs).reshape(1, -1).to(self.device)
                 else:
                     # standard ppo
                     next_value = self.vec_inference.get_value(next_obs).reshape(1, -1).to(self.device)
@@ -245,7 +237,7 @@ class PPO:
             minibatch_size = batch_size // self.cfg.num_minibatches
 
             if self.cfg.env_type in ['envpool', 'gym']:
-                obs_dim, action_dim = np.prod(self.obs_shape), self.action_shape
+                obs_dim, action_dim = self.obs_shape, self.action_shape
             else:
                 obs_dim, action_dim = self.obs_shape[0], self.action_shape[0]
 
@@ -271,10 +263,10 @@ class PPO:
                 if calculate_dqd_gradients:
                     newvalue = []
                     for i in range(self.cfg.num_dims + 1):
-                        newvalue.append(self.qd_critic.get_value_at(b_obs[i, mb_inds], dim=i))
+                        newvalue.append(self.vec_inference.measure_critic_value_at(b_obs[i, mb_inds], dim=i))
                     newvalue = torch.cat(newvalue).to(self.device)
                 elif move_mean_agent:
-                    newvalue = self.mean_critic.get_value(b_obs[:, mb_inds].reshape(-1, obs_dim))
+                    newvalue = self.vec_inference.get_value_mean_critic(b_obs[:, mb_inds].reshape(-1, *obs_dim))
                 else:
                     # standard ppo
                     if self.cfg.env_type in ['envpool', 'gym']:
@@ -321,15 +313,10 @@ class PPO:
 
                 for p in self.vec_inference.parameters():
                     p.grad = None
-                for p in self.mean_critic.parameters():
-                    p.grad = None
 
                 loss.backward()
                 nn.utils.clip_grad_norm_(self.vec_inference.parameters(), self.cfg.max_grad_norm)
                 self.vec_optimizer.step()
-                if move_mean_agent:
-                    nn.utils.clip_grad_norm_(self.mean_critic.parameters(), self.cfg.max_grad_norm)
-                    self.mean_critic_optim.step()
 
             if self.cfg.target_kl is not None:
                 if approx_kl > self.cfg.target_kl:
@@ -362,7 +349,7 @@ class PPO:
             agent_original_params = [copy.deepcopy(solution_params) for _ in range(self.cfg.num_dims + 1)]
             if self.cfg.env_type in ['envpool', 'gym']:
                 agents = [
-                    DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs,
+                    DiscreteActor(self.obs_shape, self.single_action_space.n, self.cfg.normalize_obs,
                                   self.cfg.normalize_returns).deserialize(params) for params in
                     agent_original_params]
             else:
@@ -386,13 +373,13 @@ class PPO:
                     # b/c of torch amp, need to convert back to float32
                     action = action.to(torch.float32)
                     if calculate_dqd_gradients:
-                        next_obs = self.next_obs.reshape(num_agents, self.cfg.num_envs // num_agents, -1)
+                        next_obs = self.next_obs.reshape(num_agents, self.cfg.num_envs // num_agents, *self.next_obs.shape[1:])
                         value = []
                         for i, obs in enumerate(next_obs):
-                            value.append(self.qd_critic.get_value_at(obs, i))
+                            value.append(self.vec_inference.measure_critic_value_at(obs, i))
                         value = torch.cat(value).reshape(-1).to(self.device)
                     elif move_mean_agent:
-                        value = self.mean_critic.get_value(self.next_obs)
+                        value = self.vec_inference.get_value_mean_critic(self.next_obs)
                     else:
                         # standard ppo. Maintains backwards compatibility
                         value = self.vec_inference.get_value(self.next_obs)
@@ -415,7 +402,6 @@ class PPO:
                         self.truncated[step] = truncated
                     else:
                         self.truncated[step] = infos['truncation']
-                    dones = torch.from_numpy(dones).to(self.device)
                     self.dones[step] = dones.view(-1)
                     if self.cfg.num_dims != 0:
                         measures = -infos['measures'] if negative_measure_gradients else infos['measures']
@@ -591,7 +577,7 @@ class PPO:
 
             if self.cfg.env_type in ['envpool', 'gym']:
                 original_agent = [
-                    DiscreteActor(self.obs_shape, self.action_shape, self.single_action_space.n, self.cfg.normalize_obs,
+                    DiscreteActor(self.obs_shape, self.single_action_space.n, self.cfg.normalize_obs,
                                   self.cfg.normalize_returns).deserialize(agent_original_params[0]).to(
                         self.device)]
             else:
@@ -600,7 +586,7 @@ class PPO:
                     self.device)]
 
             if self.cfg.env_type in ['envpool', 'gym']:
-                self.vec_inference = original_agent[0]
+                self.vec_inference.replace_actors(original_agent)
             else:
                 self.vec_inference = VectorizedActor(original_agent, Actor, self.obs_shape, self.action_shape,
                                                      self.cfg.normalize_obs, self.cfg.normalize_returns,
@@ -625,10 +611,7 @@ class PPO:
         traj_length = 0
         num_steps = 1000
 
-        obs = vec_env.reset()
-        if self.cfg.env_type in ['envpool', 'gym']:
-            obs = torch.from_numpy(obs)
-        obs = obs.to(self.device)
+        obs, _ = vec_env.reset()
         dones = torch.BoolTensor([False for _ in range(vec_env.num_envs)])
         all_dones = torch.zeros((num_steps, vec_env.num_envs)).to(self.device)
         measures_acc = torch.zeros((num_steps, vec_env.num_envs, self.cfg.num_dims)).to(self.device)
@@ -643,12 +626,10 @@ class PPO:
                     obs = (obs - mean) / (torch.sqrt(var) + 1e-8)
                 acts, _, _ = vec_agent.get_action(obs)
                 acts = acts.to(torch.float32)
-                obs, rew, next_dones, infos = vec_env.step(acts)
-                if self.cfg.env_type in ['envpool', 'gym']:
-                    obs = torch.from_numpy(obs)
+                obs, rew, next_dones, truncated, infos = vec_env.step(acts.to(torch.int32).detach().cpu().numpy())
                 measures_acc[traj_length] = infos['measures']
-                obs = obs.to(self.device)
                 total_reward += rew.detach().cpu().numpy() * ~dones.cpu().numpy()
+                next_dones = torch.logical_or(next_dones, truncated)
                 dones = torch.logical_or(dones, next_dones.cpu())
                 all_dones[traj_length] = dones.long().clone()
                 traj_length += 1

@@ -1,4 +1,5 @@
 import gymnasium as gym
+import torch
 
 # https://github.com/mila-iqia/atari-representation-learning/blob/master/atariari/benchmark/ram_annotations.py
 # see this link for the mapping from ram to game extra stats and info
@@ -12,8 +13,14 @@ class SpaceInvadersInfoWrapper(gym.Wrapper):
         obs, reward, done, trunc, info = self.env.step(action)
         ram = self.ale.getRAM()
         info['player_x'] = ram[28]
+        info['measures'] = ram[28]
 
         return obs, reward, done, trunc, info
+
+    def reset(self, seed=None, options=None):
+        obs, info = self.env.reset(seed=seed, options=options)
+        info['measures'] = self.ale.getRAM()[28]
+        return obs, info
 
 
 class TennisInfoWrapper(gym.Wrapper):
@@ -25,6 +32,7 @@ class TennisInfoWrapper(gym.Wrapper):
         ram = self.ale.getRAM()
         info['player_x'] = ram[26]
         info['player_y'] = ram[24]
+
 
         return obs, reward, done, trunc, info
 

@@ -18,9 +18,7 @@ from ribs.schedulers import Scheduler
 
 from RL.ppo import PPO
 from utils.utilities import log, config_wandb, get_checkpoints, set_file_handler
-from models.actor_critic import Actor
-from envs.brax_custom.brax_env import make_vec_env_brax
-from utils.normalize import ReturnNormalizer, ObsNormalizer
+from models.actor_critic import DiscreteActor
 from utils.utilities import save_cfg
 from utils.archive_utils import save_heatmap, load_scheduler_from_checkpoint, archive_df_to_archive
 from envs.brax_custom import reward_offset
@@ -31,7 +29,9 @@ def parse_args():
     # PPO params
     parser = argparse.ArgumentParser()
     parser.add_argument('--env_name', type=str)
+    parser.add_argument('--env_type', type=str, choices=['brax', 'isaac', 'envpool', 'gym'], help='Whether to use cpu-envs or gpu-envs for rollouts')
     parser.add_argument('--seed', type=int, default=0)
+    parser.add_argument('--debug', action='store_true')
     parser.add_argument("--torch_deterministic", type=lambda x: bool(strtobool(x)), default=False, nargs="?",
                         const=True,
                         help="if toggled, `torch.backends.cudnn.deterministic=False`")
@@ -174,17 +174,19 @@ def create_scheduler(cfg: AttrDict,
     log.debug(f'Environment {cfg.env_name}, {action_dim=}, {obs_dim=}')
     batch_size = cfg.popsize
     # empirically calculated for brax envs to make the qd-score strictly positive
-    qd_offset = reward_offset[cfg.env_name]
+    # qd_offset = reward_offset[cfg.env_name]
+    # TODO: add reward offsets for atari envs
+    qd_offset = 0.0
 
     if initial_sol is None:
-        initial_agent = Actor(obs_shape, action_shape, cfg.normalize_obs, cfg.normalize_returns)
+        initial_agent = DiscreteActor(obs_shape, cfg.action_space.n, cfg.normalize_obs, cfg.normalize_returns)
         initial_sol = initial_agent.serialize()
     solution_dim = len(initial_sol)
     mode = 'batch'
     # threshold for adding solutions to the archive
     threshold_min = -np.inf
 
-    bounds = [(0.0, 1.0)] * cfg.num_dims
+    bounds = [(0.0, 100.0)] * cfg.num_dims
     if cfg.is_energy_measures:
         if cfg.env_name in HEIGHT_BOUNDS:
             bounds[cfg.num_dims - 2] = cfg.energy_bounds
@@ -406,7 +408,7 @@ def train_ppga(cfg: AttrDict, vec_env):
     for itr in range(starting_iter, itrs + 1):
         # Current solution point. returns a single sol per emitter
         solution_batch = scheduler.ask_dqd()
-        mean_agent = Actor(obs_shape, action_shape, cfg.normalize_obs, cfg.normalize_returns).deserialize(
+        mean_agent = DiscreteActor(obs_shape, cfg.action_space.n, cfg.normalize_obs, cfg.normalize_returns).deserialize(
             solution_batch.flatten()).to(device)
         # whether to reset the stddev param for the action distribution
         if not cfg.adaptive_stddev:
@@ -415,10 +417,14 @@ def train_ppga(cfg: AttrDict, vec_env):
         if cfg.normalize_obs:
             if scheduler.emitters[0].mean_agent_obs_normalizer is not None:
                 mean_agent.obs_normalizer = scheduler.emitters[0].mean_agent_obs_normalizer
+            else:
+                scheduler.emitters[0].mean_agent_obs_normalizer = mean_agent.obs_normalizer
 
         if cfg.normalize_returns:
             if scheduler.emitters[0].mean_agent_return_normalizer is not None:
                 mean_agent.return_normalizer = scheduler.emitters[0].mean_agent_return_normalizer
+            else:
+                scheduler.emitters[0].mean_agent_return_normalizer = mean_agent.return_normalizer
 
         ppo.agents = [mean_agent]
         # calculate gradients of f and m
@@ -429,7 +435,7 @@ def train_ppga(cfg: AttrDict, vec_env):
                                                        negative_measure_gradients=False)
 
         # for plotting purposes
-        emitter_loc = (measures[0][0], measures[0][1])
+        emitter_loc = (measures[0][0], measures[0][1]) if cfg.num_dims == 2 else (measures[0][0],)
         best = max(best, max(objs))
 
         # return the gradients to the scheduler. Will be used for the next step
@@ -438,10 +444,11 @@ def train_ppga(cfg: AttrDict, vec_env):
         # using grads from previous step, sample a batch of branched solution points and evaluate their f and m
         branched_sols = scheduler.ask()
         branched_agents = [
-            Actor(obs_shape, action_shape, cfg.normalize_obs, cfg.normalize_returns).deserialize(sol).to(device) for sol
+            DiscreteActor(obs_shape, cfg.action_space.n, cfg.normalize_obs, cfg.normalize_returns).deserialize(sol).to(device) for sol
             in branched_sols]
-        for agent in branched_agents:
-            agent.actor_logstd.data = mean_agent.actor_logstd.data
+        if hasattr(mean_agent, 'actor_logstd'):
+            for agent in branched_agents:
+                agent.actor_logstd.data = mean_agent.actor_logstd.data
         ppo.agents = branched_agents
 
         # since we branched from mean_agent, we will use its obs/return normalizer for the branched agents
@@ -471,7 +478,7 @@ def train_ppga(cfg: AttrDict, vec_env):
         if restarted:
             log.debug("Emitter restarted. Changing the mean agent...")
             mean_soln_point = scheduler.emitters[0].theta
-            mean_agent = Actor(obs_shape, action_shape, cfg.normalize_obs, cfg.normalize_returns).deserialize(
+            mean_agent = DiscreteActor(obs_shape, cfg.action_space.n, cfg.normalize_obs, cfg.normalize_returns).deserialize(
                 mean_soln_point).to(device)
 
             # load the obs/return normalizer used for this agent
@@ -479,7 +486,7 @@ def train_ppga(cfg: AttrDict, vec_env):
                 mean_agent.obs_normalizer = scheduler.emitters[0].mean_agent_obs_normalizer
             if cfg.normalize_returns:
                 mean_agent.return_normalizer = scheduler.emitters[0].mean_agent_return_normalizer
-            if not cfg.adaptive_stddev:
+            if not cfg.adaptive_stddev and hasattr(mean_agent, 'actor_logstd'):
                 mean_agent.actor_logstd = torch.nn.Parameter(torch.zeros(1, np.prod(cfg.action_shape)))
 
         mean_grad_coeffs = scheduler.emitters[0].opt.mu  # keep track of where the emitter is taking us
@@ -592,14 +599,30 @@ if __name__ == '__main__':
 
     print("is energy measures = ", cfg.is_energy_measures)
 
-    #TODO: make vec env 
-    vec_env = make_vec_env_brax(cfg)
+    if cfg.env_type == 'brax':
+        from envs.brax_custom.brax_env import make_vec_env_brax
+        vec_env = make_vec_env_brax(cfg)
+    elif cfg.env_type == 'envpool':
+        from envs.envpool.envpool_env import make_env as make_envpool_env
+        vec_env = make_envpool_env(cfg)
+        vec_env.num_envs = int(cfg.env_batch_size)
+        vec_env.single_action_space = vec_env.action_space
+    elif cfg.env_type == 'gym':
+        from envs.gym_atari.atari_env import make_vec_env as make_vec_env_gym
+        vec_env = make_vec_env_gym(cfg)
+        vec_env.single_obs_shape = vec_env.single_observation_space.shape
+    else:
+        raise NotImplementedError(f'{cfg.env_type=} is not defined')
+
     cfg.batch_size = int(cfg.env_batch_size * cfg.rollout_length)
     cfg.num_envs = int(cfg.env_batch_size)
 
     cfg.minibatch_size = int(cfg.batch_size // cfg.num_minibatches)
-    cfg.obs_shape = vec_env.single_observation_space.shape
+    cfg.obs_shape = vec_env.single_obs_shape
     cfg.action_shape = vec_env.single_action_space.shape
+    cfg.action_space = vec_env.single_action_space
+    if cfg.env_type in ['envpool', 'gym']:
+        cfg.single_action_space = vec_env.single_action_space
 
     print("obs_shape")
     print(cfg.obs_shape)
@@ -618,10 +641,14 @@ if __name__ == '__main__':
     if cfg.use_wandb:
         config_wandb(batch_size=cfg.batch_size, total_iters=cfg.total_iterations, run_name=cfg.wandb_run_name,
                      wandb_project=cfg.wandb_project, wandb_group=cfg.wandb_group, cfg=cfg)
-    outdir = os.path.join(cfg.expdir, str(cfg.seed))
-    cfg.outdir = outdir
-    assert not os.path.exists(outdir) or cfg.load_scheduler_from_cp is not None or cfg.load_archive_from_cp is not None, \
-        f"Warning: experiment dir {outdir} exists. Danger of overwriting previous run"
+    if cfg.debug:
+        outdir = os.path.join('./experiments/debug', str(cfg.seed))
+        cfg.outdir = outdir
+    else:
+        outdir = os.path.join(cfg.expdir, str(cfg.seed))
+        cfg.outdir = outdir
+        assert not os.path.exists(outdir) or cfg.load_scheduler_from_cp is not None or cfg.load_archive_from_cp is not None, \
+            f"Warning: experiment dir {outdir} exists. Danger of overwriting previous run"
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 

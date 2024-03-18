@@ -16,7 +16,7 @@ from torch import Tensor
 
 from utils.utilities import log, save_checkpoint
 from models.vectorized import VectorizedActor
-from models.actor_critic import Actor, Critic, QDCritic
+from models.actor_critic import Actor, Critic, MeasureCritic
 
 
 # based off of the clean-rl implementation
@@ -55,7 +55,7 @@ class PPO:
 
         agent = Actor(self.obs_shape, self.action_shape, normalize_obs=cfg.normalize_obs, normalize_returns=cfg.normalize_returns).to(self.device)
         self._agents = [agent]
-        critic = QDCritic(self.obs_shape, measure_dim=cfg.num_dims).to(self.device)
+        critic = MeasureCritic(self.obs_shape, measure_dim=cfg.num_dims).to(self.device)
         self.qd_critic = critic
         self.vec_inference = VectorizedActor(self._agents, Actor, obs_shape=self.obs_shape,
                                              action_shape=self.action_shape, normalize_obs=cfg.normalize_obs,
@@ -137,7 +137,7 @@ class PPO:
         self._theta = np.copy(new_theta)
 
     def update_critics(self, critics_list: List[Critic]):
-        self.qd_critic = QDCritic(self.obs_shape, measure_dim=self.cfg.num_dims, critics_list=critics_list).to(
+        self.qd_critic = MeasureCritic(self.obs_shape, measure_dim=self.cfg.num_dims, critics_list=critics_list).to(
             self.device)
         self.qd_critic_optim = torch.optim.Adam(self.qd_critic.parameters(), lr=self.cfg.learning_rate, eps=1e-5)
 

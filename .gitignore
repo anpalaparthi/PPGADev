@@ -6,3 +6,4 @@ checkpoints/
 log.txt
 *.mp4
 wandb/
+experiments/

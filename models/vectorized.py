@@ -171,7 +171,14 @@ class VectorizedActor(VectorizedPolicy):
 
 
 class VectorizedDiscreteVisualActorCritic(VectorizedPolicy):
-    def __init__(self, models, model_fn, obs_shape, action_shape, normalize_obs=False, normalize_returns=False):
+    def __init__(self,
+                 models,
+                 model_fn,
+                 obs_shape,
+                 action_shape,
+                 measure_dim: int,
+                 normalize_obs=False,
+                 normalize_returns=False):
         '''
         Vectorized policy class for visual observations and discrete action spaces (i.e. Atari)
         Uses a single visual feature extractor CNN-backbone shared by all "policy heads" which are the
@@ -194,11 +201,21 @@ class VectorizedDiscreteVisualActorCritic(VectorizedPolicy):
         # vectorized mlp "policy heads"
         self.blocks = self._vectorize_layers('actor_mean', models)
         self.actor_mean = nn.Sequential(*self.blocks)
-        self.critic = layer_init(nn.Linear(512, 1), std=1)
 
-    def replace_models(self, models):
+        # critic for the mean solution point (agent)
+        self.mean_critic = layer_init(nn.Linear(512, 1), std=1)
+
+        # critics for the agents that estimate the objective-measure gradients
+        self.measure_critics = nn.ModuleList([layer_init(nn.Linear(512, 1), std=1) for _ in range(measure_dim + 1)])
+
+    def replace_actors(self, models):
+        self.num_models = len(models)
         self.blocks = self._vectorize_layers('actor_mean', models)
         self.actor_mean = nn.Sequential(*self.blocks)
+        if self.normalize_obs:
+            self.obs_normalizers = nn.ModuleList([m.obs_normalizer for m in models])
+        if self.normalize_returns:
+            self.rew_normalizers = nn.ModuleList([m.return_normalizer for m in models])
 
     def forward(self, x: torch.Tensor):
         feats = self.feature_extractor(x)
@@ -213,8 +230,19 @@ class VectorizedDiscreteVisualActorCritic(VectorizedPolicy):
         return action, probs.log_prob(action), probs.entropy()
 
     def get_value(self, obs: torch.Tensor):
+        '''Treat the mean critic as the standard critic for standard PPO.
+        Maintains backwards compatibilty'''
+        return self.get_value_mean_critic(obs)
+
+    def get_value_mean_critic(self, obs: torch.Tensor):
         feats = self.feature_extractor(obs)
-        return self.critic(feats)
+        return self.mean_critic(feats)
+
+    def measure_critic_value_at(self, obs: torch.Tensor, dim: int):
+        '''Get the critic value for the ith dim. Dim=0 is the objective dim,
+        and dim > 0 are measure dims'''
+        feats = self.feature_extractor(obs)
+        return self.measure_critics[dim](feats)
 
     def vec_to_models(self):
         '''

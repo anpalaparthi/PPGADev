@@ -32,10 +32,10 @@ def make_env(env_name):
         env = EpisodicLifeEnv(env)
         if "FIRE" in env.unwrapped.get_action_meanings():
             env = FireResetEnv(env)
-        env = ClipRewardEnv(env)
+        # env = ClipRewardEnv(env)
         env = gym.wrappers.GrayScaleObservation(env)
         env = gym.wrappers.FrameStack(env, 4)
-        # env = _atari_info_wrappers[env_name](env)
+        env = _atari_info_wrappers[env_name](env)
         return env
 
     return thunk
