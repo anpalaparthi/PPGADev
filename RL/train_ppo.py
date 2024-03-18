@@ -25,8 +25,10 @@ from collections import defaultdict
 
 is_legacy_gym = version.parse(gym.__version__) < version.parse("0.26.0")
 import os
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:4096"
+#os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:4096"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:16384"
 print("os env = ", os.environ["PYTORCH_CUDA_ALLOC_CONF"])
+torch.cuda.empty_cache()
 
 def force_cudnn_initialization():
     s = 32

@@ -599,6 +599,88 @@ class PPO:
                 m.reshape(self.vec_inference.num_models, -1), \
                 jacobian, \
                 metadata
+	
+        # self.visualize(vec_env)
+
+    def visualize(self, vec_env):
+        print("**************************EVALUATE AND VISUALIZE***************************")
+        eval_global_step = 0
+        eval_start_time = time.time()
+        eval_next_obs = torch.Tensor(vec_env.reset()).to(self.device)
+        eval_next_done = torch.zeros(vec_env.num_envs).to(self.device)
+        eval_num_updates = self.cfg.total_timesteps // self.cfg.batch_size
+        eval_num_steps = 2000
+
+        # ALGO Logic: Storage setup
+        eval_obs = torch.zeros(
+        (eval_num_steps, vec_env.num_envs) + vec_env.single_observation_space.shape
+        ).to(self.device)
+        eval_actions = torch.zeros(
+        (eval_num_steps, vec_env.num_envs) + self.cfg.action_shape
+        ).to(self.device)
+        eval_logprobs = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
+        eval_rewards = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
+        eval_dones = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
+        eval_values = torch.zeros((eval_num_steps, vec_env.num_envs)).to(self.device)
+        eval_avg_returns = deque(maxlen=20)
+        eval_img_path = "/home/icaros/Documents/PPGADev/envpool_imgs"
+        eval_video_path = "/home/icaros/Documents/PPGADev/envpool_imgs/videos"
+        eval_zfill_length = 5
+
+        for step in range(0, eval_num_steps):
+            if ((step % 100 == 0)):
+                print("img step = ", step)
+            eval_global_step += 1 * vec_env.num_envs
+            eval_obs[step] = eval_next_obs
+            eval_dones[step] = eval_next_done
+
+
+            # ALGO LOGIC: action logic
+            with torch.no_grad():
+                # eval_action, eval_logprob, _, eval_value = agent.get_action_and_value(eval_next_obs)
+                eval_action, eval_logprob, _ = self.vec_inference.get_action(eval_next_obs)
+                if (self.cfg.env_type == 'envpool'):
+                    # print("CALC REWARD ENVPOOL")
+                    eval_next_obs = torch.reshape(eval_next_obs, (-1, eval_next_obs.shape[1] * eval_next_obs.shape[2] * eval_next_obs.shape[3]))
+                eval_value = self.qd_critic.get_value(eval_next_obs).reshape(1, -1).to(self.device)
+                
+                # eval_value = self.qd_critic.get_value(eval_next_obs)
+                eval_values[step] = eval_value.flatten()
+            # print("vec_env.single_action_space.shape = ", self.cfg.action_shape)
+            # print('eval_actions shape = ', eval_actions.shape)
+            # print('eval_action shape = ', eval_actions.shape)
+            eval_actions[step] = eval_action
+            eval_logprobs[step] = eval_logprob
+
+            # TRY NOT TO MODIFY: execute the game and log data.
+            eval_next_obs, eval_reward, eval_done, eval_info = vec_env.step(eval_action.cpu().numpy())
+            eval_rewards[step] = torch.tensor(eval_reward).to(self.device).view(-1)
+            eval_next_obs, eval_next_done = torch.Tensor(eval_next_obs).to(self.device), torch.Tensor(eval_done).to(self.device)
+
+            # save images
+            ids = np.asarray(eval_info["env_id"])
+            ids = ids[~eval_done]
+            img_list = []
+            img_dict = defaultdict(lambda: [])
+            if cv2 is not None:
+                eval_obs_all = np.zeros((84, 84 * vec_env.num_envs, 3), np.uint8)
+                for i, j in enumerate(ids):
+                    eval_obs_all[:, 84 * j:84 * (j+1)] = eval_next_obs[i, 1:].cpu().permute(1, 2, 0)
+                    img_list.append(eval_obs_all)
+                    for env_num in range(vec_env.num_envs):
+                        eval_obs_env = eval_obs_all[:, 84 * env_num:84 * (env_num + 1)]
+                        img_dict[env_num].append(eval_obs_env)
+                        if not cv2.imwrite(f"{eval_img_path}/env_{env_num}_step_{str(step).zfill(eval_zfill_length)}.png", eval_obs_env):
+                            print(f"image write failed step {step}")
+                if not cv2.imwrite(f"{eval_img_path}/step_{str(step).zfill(eval_zfill_length)}.png", eval_obs_all):
+                    print(f"image write failed step {step}")
+        print("finished creating images")
+        images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall_all")
+        print("finished images2gif recall all")
+        for env_num in range(vec_env.num_envs):
+            images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall", env_num)
+        print("finished visualize")
+
 
     def evaluate(self, vec_agent, vec_env, verbose=True, obs_normalizer=None, return_normalizer=None):
         '''
