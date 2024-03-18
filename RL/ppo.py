@@ -591,10 +591,12 @@ class PPO:
                 self.vec_inference = VectorizedActor(original_agent, Actor, self.obs_shape, self.action_shape,
                                                      self.cfg.normalize_obs, self.cfg.normalize_returns,
                                                      env_type=self.cfg.env_type)
+            max_eval_steps = 27000 if self.cfg.env_type in ['envpool', 'gym'] else 1000
             f, m, metadata = self.evaluate(self.vec_inference,
                                            vec_env=vec_env,
                                            obs_normalizer=original_obs_normalizer,
-                                           return_normalizer=original_return_normalizer)
+                                           return_normalizer=original_return_normalizer,
+                                           num_steps=max_eval_steps)
             return f.reshape(self.vec_inference.num_models, ), \
                 m.reshape(self.vec_inference.num_models, -1), \
                 jacobian, \
@@ -681,17 +683,19 @@ class PPO:
             images2gif(eval_img_path, eval_zfill_length, eval_video_path, "recall", env_num)
         print("finished visualize")
 
-
-    def evaluate(self, vec_agent, vec_env, verbose=True, obs_normalizer=None, return_normalizer=None):
+    def evaluate(self,
+                 vec_agent,
+                 vec_env,
+                 verbose=True,
+                 obs_normalizer=None,
+                 return_normalizer=None,
+                 num_steps: int = 1000):
         '''
         Evaluate all agents for one episode
-        :param vec_agent: Vectorized agents for vectorized inference
-        :returns: Sum rewards and measures for all agents
         '''
 
         total_reward = np.zeros(vec_env.num_envs)
         traj_length = 0
-        num_steps = 1000
 
         obs, _ = vec_env.reset()
         dones = torch.BoolTensor([False for _ in range(vec_env.num_envs)])

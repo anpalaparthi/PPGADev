@@ -186,7 +186,7 @@ def create_scheduler(cfg: AttrDict,
     # threshold for adding solutions to the archive
     threshold_min = -np.inf
 
-    bounds = [(0.0, 100.0)] * cfg.num_dims
+    bounds = [(0.0, 20.0)] * cfg.num_dims
     if cfg.is_energy_measures:
         if cfg.env_name in HEIGHT_BOUNDS:
             bounds[cfg.num_dims - 2] = cfg.energy_bounds
@@ -394,6 +394,7 @@ def train_ppga(cfg: AttrDict, vec_env):
     action_shape = cfg.action_shape
 
     ppo = scheduler.emitters[0].ppo
+    max_eval_steps = 27000 if cfg.env_type in ['envpool', 'gym'] else 1000
 
     # save the initial heatmap
     if cfg.num_dims <= 2:
@@ -461,7 +462,8 @@ def train_ppga(cfg: AttrDict, vec_env):
                                                 vec_env,
                                                 verbose=True,
                                                 obs_normalizer=eval_obs_normalizer,
-                                                return_normalizer=eval_rew_normalizer)
+                                                return_normalizer=eval_rew_normalizer,
+                                                num_steps=max_eval_steps)
 
         if cfg.weight_decay:
             reg_loss = cfg.weight_decay * np.array([np.linalg.norm(sol) for sol in branched_sols]).reshape(objs.shape)
